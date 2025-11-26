@@ -17,7 +17,12 @@ helm template . --values values.yaml
 
 ## Values Design & Coding Style
 
-`values.yaml` must read from a service-owner perspective: describe intent (apps, ingress needs, desired ports) and let the templates translate to Kubernetes structures. YAML uses two-space indentation and lowercase hyphenated keys. Template files rely on Go template trimming (`{{- ... -}}`) to keep manifests tidy. Favor boolean `enabled` flags for toggles (`apps.<name>.enabled`, `apps.<name>.ingress.enabled`, `namespace.enabled`) and name two-dimensional structures by what they configure (e.g., `ports[].service.nodePort`). Metadata names must remain DNS-1123 compliant; templates currently derive them from the entry's app key.
+- `values.yaml` must read from a service-owner perspective: describe intent (apps, ingress needs, desired ports) and let the templates translate to Kubernetes structures. YAML uses two-space indentation and lowercase hyphenated keys. Template files rely on Go template trimming (`{{- ... -}}`) to keep manifests tidy. Favor boolean `enabled` flags for toggles (`apps.<name>.enabled`, `apps.<name>.ingress.enabled`, `namespace.enabled`) and name two-dimensional structures by what they configure (e.g., `ports[].service.nodePort`). Metadata names must remain DNS-1123 compliant; templates currently derive them from the entry's app key.
+
+- When naming helper functions always start with `app-chart` to avoid collisisions. If the file is not called `_helper.tpl` then a second level prefix with the file name is recommended, e.g., `app-chart.ingress.my-function`.
+
+- Always add a brief readme explaining the purpose of the helper function.
+- Always use space to indent yaml files or any other files that accept space as indentation.
 
 ## Testing & Review Expectations
 
