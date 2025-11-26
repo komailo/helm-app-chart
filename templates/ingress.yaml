@@ -1,0 +1,67 @@
+{{- $root := . }}
+{{- range $appName, $app := .Values.apps }}
+{{- $ing := $app.ingress }}
+{{- if and ($app.enabled | default true) ($ing.enabled | default false) ($ing.hosts) }}
+{{- $ports := $app.ports }}
+{{- if not $ports }}
+{{- $ports = list (dict "name" "http" "containerPort" 80 "protocol" "TCP") }}
+{{- end }}
+{{- $firstPort := index $ports 0 }}
+{{- $firstContainerPort := default 80 $firstPort.containerPort }}
+{{- $defaultPortName := default (printf "%s-%d" $appName $firstContainerPort) $firstPort.name }}
+{{- $serviceName := $appName }}
+{{- $ingressName := $appName }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $ingressName }}
+  namespace: {{ $.Release.Namespace }}
+{{- if or ($ing.annotations) ($ing.certManagerClusterIssuer) }}
+  annotations:
+{{- if $ing.certManagerClusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ $ing.certManagerClusterIssuer | quote }}
+{{- end }}
+{{- range $key, $value := $ing.annotations }}
+    {{ $key }}: {{ $value | quote }}
+{{- end }}
+{{- end }}
+spec:
+{{- if $ing.className }}
+  ingressClassName: {{ $ing.className }}
+{{- end }}
+{{- if $ing.tls }}
+  tls:
+{{- range $tls := $ing.tls }}
+    - secretName: {{ $ingressName }}
+{{- if $tls.hosts }}
+      hosts:
+{{- range $host := $tls.hosts }}
+        - {{ $host }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+  rules:
+{{- range $host := $ing.hosts }}
+{{- $paths := $host.paths | default (list (dict "path" "/" "pathType" "Prefix")) }}
+    - host: {{ $host.host }}
+      http:
+        paths:
+{{- range $path := $paths }}
+          - path: {{ default "/" $path.path }}
+            pathType: {{ default "Prefix" $path.pathType }}
+            backend:
+              service:
+                name: {{ default $serviceName $path.serviceName }}
+{{- $servicePort := default $defaultPortName $path.servicePort }}
+                port:
+{{- if kindIs "string" $servicePort }}
+                  name: {{ $servicePort }}
+{{- else }}
+                  number: {{ $servicePort }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

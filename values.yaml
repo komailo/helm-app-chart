@@ -1,0 +1,37 @@
+# apps:
+#   whoami:
+#     enabled: true
+#     replicas: 2
+#     ingress:
+#       enabled: false
+#       className: nginx
+#       certManagerClusterIssuer: "letsencrypt-prod"
+#       annotations: {}
+#       hosts:
+#         - host: whoami.local
+#           paths:
+#             - path: /
+#               pathType: Prefix
+#               servicePort: http # maps to the named Service port or a number
+#       tls:
+#         - hosts:
+#             - whoami.local
+#     image:
+#       repository: "traefik/whoami"
+#       tag: null
+#     service:
+#       type: ClusterIP
+#     ports:
+#       - name: http
+#         containerPort: 8080 # spec.template.spec.containers[].ports[].containerPort
+#         protocol: TCP # optional; defaults to TCP
+#         service:
+#           enabled: true # set false for internal-only container ports
+#           type: ClusterIP # optional; defaults to ClusterIP
+#           port: 80 # spec.ports[].port
+#           targetPort: http # spec.ports[].targetPort; defaults to container port/name
+#           nodePort: null # required only if service.type == NodePort/LoadBalancer
+namespace:
+  enabled: false
+
+persistentVolumeClaims:

@@ -1,0 +1,44 @@
+{{- range $appName, $app := .Values.apps }}
+{{- if $app.enabled | default true }}
+{{- $ports := $app.ports }}
+{{- if not $ports }}
+{{- $ports = list (dict "name" "http" "containerPort" 80 "protocol" "TCP" "service" (dict "enabled" true "port" 80)) }}
+{{- end }}
+{{- $serviceConfig := default (dict "type" "ClusterIP") $app.service }}
+{{- $serviceType := default "ClusterIP" $serviceConfig.type }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $appName }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  type: {{ $serviceType }}
+  selector:
+    app: {{ $appName }}
+  ports:
+{{- $hasServicePort := false }}
+{{- range $port := $ports }}
+{{- $containerPort := default 80 $port.containerPort }}
+{{- $portName := default (printf "%s-%d" $appName $containerPort) $port.name }}
+{{- $protocol := default "TCP" $port.protocol }}
+{{- $svc := default dict $port.service }}
+{{- if $svc.enabled | default true }}
+    - name: {{ $portName }}
+      port: {{ default $containerPort $svc.port }}
+      targetPort: {{ default $portName $svc.targetPort }}
+      protocol: {{ $protocol }}
+{{- if $svc.nodePort }}
+      nodePort: {{ $svc.nodePort }}
+{{- end }}
+{{- $hasServicePort = true }}
+{{- end }}
+{{- end }}
+{{- if not $hasServicePort }}
+    - name: {{ printf "%s-80" $appName }}
+      port: 80
+      targetPort: 80
+      protocol: TCP
+{{- end }}
+{{- end }}
+{{- end }}

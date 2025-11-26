@@ -1,0 +1,11 @@
+apiVersion: v2
+name: app-chart
+description: A Helm Chart for generating Kubernetes resources for app deployment
+type: application
+version: 0.2.0
+
+maintainers:
+  - name: komailo
+    url: https://github.com/komailo/helm-charts
+sources:
+  - https://github.com/komailo/helm-charts

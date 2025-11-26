@@ -1,0 +1,55 @@
+{{- range $appName, $app := .Values.apps }}
+{{- if $app.enabled | default true }}
+{{- $ports := $app.ports }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $appName }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  replicas: {{ $app.replicas | default 1 }}
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: {{ $appName }}
+  template:
+    metadata:
+      labels:
+        app: {{ $appName }}
+    spec:
+      containers:
+        - image: "{{ $app.image.repository }}:{{ $app.image.tag | default "latest" }}"
+          name: {{ $appName }}
+
+  {{- if $ports }}
+          ports:
+  {{- range $port := $ports }}
+  {{- $containerPort := default 80 $port.containerPort }}
+  {{- $portName := default (printf "%s-%d" $appName $containerPort) $port.name }}
+  {{- $protocol := default "TCP" $port.protocol }}
+            - containerPort: {{ $containerPort }}
+              name: {{ $portName }}
+              protocol: {{ $protocol }}
+  {{- end }}
+  {{- end }}
+
+  {{- if $app.volumes }}
+          volumeMounts:
+  {{- range $appVolumes := $app.volumes }}
+            - name: {{ $appVolumes.name }}
+              mountPath: {{ $appVolumes.mountPath | required "mountPath is required for volumeMounts" }}
+  {{- end }}
+  {{- end }}
+
+  {{- if $app.volumes }}
+      volumes:
+  {{- range $appVolumes := $app.volumes }}
+        - name: {{ $appVolumes.name }}
+          persistentVolumeClaim:
+            claimName: {{ $appVolumes.persistentVolumeClaim.claimName }}
+  {{- end }}
+  {{- end }}
+
+{{- end }}
+{{- end }}

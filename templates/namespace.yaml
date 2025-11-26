@@ -1,0 +1,7 @@
+{{ if .Values.namespace.enabled | default false -}}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Release.Namespace }}
+{{- end }}
