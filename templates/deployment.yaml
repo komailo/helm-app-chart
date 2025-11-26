@@ -21,6 +21,7 @@ spec:
         - image: "{{ $app.image.repository }}:{{ $app.image.tag | default "latest" }}"
           name: {{ $appName }}
           {{- include "app-chart.deployment.containerPorts" (dict "ports" $app.ports "appName" $appName) | nindent 10 }}
+          {{- include "app-chart.deployment.livenessProbe" (dict "livenessProbe" $app.livenessProbe "appName" $appName) | nindent 10 }}
           {{- include "app-chart.deployment.volumeMounts" (dict "volumes" $app.volumes) | nindent 10 }}
       {{- include "app-chart.deployment.volumes" (dict "volumes" $app.volumes) | nindent 6 }}
 

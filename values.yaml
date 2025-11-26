@@ -19,6 +19,16 @@
 #     image:
 #       repository: "traefik/whoami"
 #       tag: null
+#     livenessProbe:
+#       enabled: true
+#       type: command
+#       command:
+#         - cat
+#         - /tmp/healthy
+#       initialDelaySeconds: 5
+#       periodSeconds: 10
+#       timeoutSeconds: 1
+#       failureThreshold: 3
 #     service:
 #       type: ClusterIP
 #     ports:

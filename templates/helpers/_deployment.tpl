@@ -15,6 +15,41 @@ ports:
 {{- end -}}
 {{- end }}
 
+{{/* Renders optional livenessProbe for a container */}}
+{{- define "app-chart.deployment.livenessProbe" -}}
+{{- $probe := .livenessProbe -}}
+{{- $appName := .appName -}}
+{{- if and $probe (ne ($probe.enabled | default true) false) -}}
+livenessProbe:
+  {{- $probeType := default "command" $probe.type }}
+  {{- if eq $probeType "command" }}
+  exec:
+    command:
+    {{- $command := required (printf "apps.%s.livenessProbe.command is required when type=command" $appName) $probe.command }}
+    {{- range $cmd := $command }}
+      - {{ $cmd | quote }}
+    {{- end }}
+  {{- else }}
+  {{- fail (printf "apps.%s.livenessProbe.type %s is not supported" $appName $probeType) }}
+  {{- end }}
+  {{- with $probe.initialDelaySeconds }}
+  initialDelaySeconds: {{ . }}
+  {{- end }}
+  {{- with $probe.periodSeconds }}
+  periodSeconds: {{ . }}
+  {{- end }}
+  {{- with $probe.timeoutSeconds }}
+  timeoutSeconds: {{ . }}
+  {{- end }}
+  {{- with $probe.successThreshold }}
+  successThreshold: {{ . }}
+  {{- end }}
+  {{- with $probe.failureThreshold }}
+  failureThreshold: {{ . }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
 {{/* Renders volumeMounts for containers */}}
 {{- define "app-chart.deployment.volumeMounts" -}}
 {{- $volumes := .volumes -}}
