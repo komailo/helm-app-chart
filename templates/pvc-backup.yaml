@@ -1,5 +1,6 @@
 {{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
 {{- if and $pvc.backup $pvc.backup.enabled }}
+{{- $clusterName := $.Values.clusterName | required "clusterName name is required" }}
 ---
 apiVersion: v1
 kind: Secret
@@ -8,11 +9,11 @@ metadata:
   namespace: {{ $.Release.Namespace }}
 type: Opaque
 stringData:
-  B2_ACCOUNT_ID: "<path:avp-secrets:restic-backup.b2-account-id#b2-account-id>"
-  B2_ACCOUNT_KEY: "<path:avp-secrets:restic-backup.b2-account-key#b2-account-key>"
+  B2_ACCOUNT_ID: "<path:avp-secrets:${{ $clusterName }}.restic-backup.b2-account-id#b2-account-id>"
+  B2_ACCOUNT_KEY: "<path:avp-secrets:${{ $clusterName }}.restic-backup.b2-account-key#b2-account-key>"
   RESTIC_HOSTNAME: "{{ $.Release.Namespace }}-{{ $pvcName }}"
-  RESTIC_PASSWORD: "<path:avp-secrets:restic-backup.password#password>"
-  RESTIC_REPOSITORY: "<path:avp-secrets:restic-backup.repository#repository>"
+  RESTIC_PASSWORD: "<path:avp-secrets:${{ $clusterName }}.restic-backup.password#password>"
+  RESTIC_REPOSITORY: "<path:avp-secrets:${{ $clusterName }}.restic-backup.repository#repository>"
   RESTIC_RETRY_LOCK: "15m"
 
 ---
