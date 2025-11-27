@@ -9,11 +9,11 @@ metadata:
   namespace: {{ $.Release.Namespace }}
 type: Opaque
 stringData:
-  B2_ACCOUNT_ID: "<path:avp-secrets:${{ $clusterName }}.restic-backup.b2-account-id#b2-account-id>"
-  B2_ACCOUNT_KEY: "<path:avp-secrets:${{ $clusterName }}.restic-backup.b2-account-key#b2-account-key>"
+  B2_ACCOUNT_ID: "<path:avp-secrets:k8s-{{ $clusterName }}.restic-backup.b2-account-id#b2-account-id>"
+  B2_ACCOUNT_KEY: "<path:avp-secrets:k8s-{{ $clusterName }}.restic-backup.b2-account-key#b2-account-key>"
   RESTIC_HOSTNAME: "{{ $.Release.Namespace }}-{{ $pvcName }}"
-  RESTIC_PASSWORD: "<path:avp-secrets:${{ $clusterName }}.restic-backup.password#password>"
-  RESTIC_REPOSITORY: "<path:avp-secrets:${{ $clusterName }}.restic-backup.repository#repository>"
+  RESTIC_PASSWORD: "<path:avp-secrets:k8s-{{ $clusterName }}.restic-backup.password#password>"
+  RESTIC_REPOSITORY: "<path:avp-secrets:k8s-{{ $clusterName }}.restic-backup.repository#repository>"
   RESTIC_RETRY_LOCK: "15m"
 
 ---
