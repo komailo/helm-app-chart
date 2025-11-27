@@ -29,6 +29,8 @@ spec:
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
+      ttlSecondsAfterFinished: 172800 # 2 days
+      backoffLimit: 4
       template:
         spec:
           restartPolicy: OnFailure
