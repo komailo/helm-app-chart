@@ -1,0 +1,81 @@
+{{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
+{{- if and $pvc.backup $pvc.backup.enabled }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: restic-{{ $pvcName }}-config
+  namespace: {{ $.Release.Namespace }}
+type: Opaque
+stringData:
+  B2_ACCOUNT_ID: "<path:avp-secrets:restic-backup.b2-account-id#b2-account-id>"
+  B2_ACCOUNT_KEY: "<path:avp-secrets:restic-backup.b2-account-key#b2-account-key>"
+  RESTIC_HOSTNAME: "{{ $.Release.Namespace }}-{{ $pvcName }}"
+  RESTIC_PASSWORD: "<path:avp-secrets:restic-backup.password#password>"
+  RESTIC_REPOSITORY: "<path:avp-secrets:restic-backup.repository#repository>"
+  RESTIC_RETRY_LOCK: "15m"
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $pvcName }}-pvc-backup
+  namespace: {{ $.Release.Namespace }}
+spec:
+  schedule: "@hourly"
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: restic-backup
+              image: restic/restic:latest
+              envFrom:
+                - secretRef:
+                    name: restic-{{ $pvcName }}-config
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+
+                  echo "[backup] Checking/initializing restic repo..."
+                  if ! restic snapshots > /dev/null 2>&1; then
+                    echo "[backup] Repo not found, initializing..."
+                    restic init
+                  fi
+
+                  echo "[backup] Running backup of /data ..."
+                  restic backup /data \
+                    --skip-if-unchanged \
+                    --retry-lock "$RESTIC_RETRY_LOCK" \
+                    --host "$RESTIC_HOSTNAME" \
+                    --tag="pvc={{ $pvcName }}" \
+                    --tag="namespace={{ $.Release.Namespace }}"
+
+                  echo "[backup] Applying retention policy + prune..."
+                  restic forget \
+                    --keep-daily 7 \
+                    --keep-weekly 4 \
+                    --keep-monthly 3 \
+                    --retry-lock "$RESTIC_RETRY_LOCK" \
+                    --prune \
+                    --tag="pvc={{ $pvcName }}" \
+                    --tag="namespace={{ $.Release.Namespace }}"
+
+                  echo "[backup] Done."
+
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: {{ $pvcName }}
+
+{{- end }}
+{{- end }}

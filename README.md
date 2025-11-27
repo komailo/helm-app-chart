@@ -8,6 +8,7 @@ Reusable Helm chart for deploying one or more simple applications (Deployments +
 - Sensible defaults: ports, service exposure, and ingress fields auto-populate when omitted
 - Namespace bootstrap: optionally create the release namespace from the chart
 - Plain Helm: no custom controllers or CRDs, so rendering works anywhere Helm 3 does
+- PVC management: define persistent volumes once and (optionally) back them up with a built-in Restic CronJob
 
 ## Getting Started
 
@@ -39,23 +40,24 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 
 ### Top-Level Keys
 
-| Key                 | Type       | Description                                                                                      | Default |
-| ------------------- | ---------- | ------------------------------------------------------------------------------------------------ | ------- |
-| `apps`              | object map | Map of app name → configuration. Each entry renders a Deployment, Service, and optional Ingress. | `{}`    |
-| `namespace.enabled` | bool       | When `true`, renders `templates/namespace.yaml` so Helm creates the target namespace.            | `false` |
+| Key                      | Type       | Description                                                                                        | Default |
+| ------------------------ | ---------- | -------------------------------------------------------------------------------------------------- | ------- |
+| `apps`                   | object map | Map of app name → configuration. Each entry renders a Deployment, Service, and optional Ingress.   | `{}`    |
+| `namespace.enabled`      | bool       | When `true`, renders `templates/namespace.yaml` so Helm creates the target namespace.              | `false` |
+| `persistentVolumeClaims` | object map | Map of PVC name → spec. Renders both `PersistentVolumeClaim` objects and optional backup CronJobs. | `{}`    |
 
 ### `apps.<name>` object
 
-| Key                | Type   | Description                                                                                                   | Default                                                |
-| ------------------ | ------ | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `enabled`          | bool   | Turns the entire app on/off without removing its config.                                                      | `true`                                                 |
-| `replicas`         | int    | Number of pod replicas.                                                                                       | `1`                                                    |
-| `image.repository` | string | Container image repository (e.g., `traefik/whoami`).                                                          | **required**                                           |
-| `image.tag`        | string | Image tag; falls back to `latest` if omitted.                                                                 | `latest`                                               |
-| `ports`            | array  | Port definitions exposed on the container; also drives Service ports.                                         | `[{ name: "http", containerPort: 80, protocol: TCP }]` |
-| `service`          | object | App-wide Service defaults (e.g., `type: ClusterIP`). Per-port service overrides live under `ports[].service`. | `{ type: ClusterIP }`                                  |
-| `ingress`          | object | Optional ingress declaration. If `ingress.enabled` and hosts exist, renders `templates/ingress.yaml`.         | disabled                                               |
-| `livenessProbe`    | object | Optional container liveness probe. Currently supports `type: command` with a `command` array plus standard timing fields. | disabled |
+| Key                | Type   | Description                                                                                                               | Default                                                |
+| ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `enabled`          | bool   | Turns the entire app on/off without removing its config.                                                                  | `true`                                                 |
+| `replicas`         | int    | Number of pod replicas.                                                                                                   | `1`                                                    |
+| `image.repository` | string | Container image repository (e.g., `traefik/whoami`).                                                                      | **required**                                           |
+| `image.tag`        | string | Image tag; falls back to `latest` if omitted.                                                                             | `latest`                                               |
+| `ports`            | array  | Port definitions exposed on the container; also drives Service ports.                                                     | `[{ name: "http", containerPort: 80, protocol: TCP }]` |
+| `service`          | object | App-wide Service defaults (e.g., `type: ClusterIP`). Per-port service overrides live under `ports[].service`.             | `{ type: ClusterIP }`                                  |
+| `ingress`          | object | Optional ingress declaration. If `ingress.enabled` and hosts exist, renders `templates/ingress.yaml`.                     | disabled                                               |
+| `livenessProbe`    | object | Optional container liveness probe. Currently supports `type: command` with a `command` array plus standard timing fields. | disabled                                               |
 
 ### `ports[]` entries
 
@@ -112,3 +114,37 @@ apps:
 ```
 
 Copy the example block, rename the key (`whoami` → new service), and adjust ports/ingress requirements to onboard additional applications.
+
+### `persistentVolumeClaims.<name>` objects
+
+Every entry under `persistentVolumeClaims` renders a PVC from `templates/pvc.yaml`. Add a matching `volumes[].persistentVolumeClaim.claimName` inside the consuming app to mount it.
+
+| Key                | Type   | Description                                                                                                | Default      |
+| ------------------ | ------ | ---------------------------------------------------------------------------------------------------------- | ------------ |
+| `storageClassName` | string | Required. Class the PVC should bind to.                                                                    | **required** |
+| `storage`          | string | Required. Capacity request (for example `10Gi`).                                                           | **required** |
+| `backup.enabled`   | bool   | When `true`, also renders `templates/pvc-backup.yaml`, which provisions a Restic CronJob + Secret per PVC. | `false`      |
+
+When backups are enabled:
+
+- The CronJob runs hourly using `restic/restic:latest`, backs up `/data` (the mounted PVC), and retains 7 daily, 4 weekly, and 3 monthly restore points.
+- Secrets referenced inside the backup template rely on external secret injection (see the `<path:...>` placeholders). Update those secret references to match your vault or secret store if needed.
+
+Example:
+
+```yaml
+persistentVolumeClaims:
+  uptime-kuma-data:
+    storageClassName: production-1
+    storage: 10Gi
+    backup:
+      enabled: true
+# ... other chart values ...
+apps:
+  uptime-kuma:
+    volumes:
+      - name: uptime-kuma-data
+        mountPath: /app/data
+        persistentVolumeClaim:
+          claimName: uptime-kuma-data
+```
