@@ -1,26 +1,22 @@
+{{- $backupTracker := dict "enabled" false }}
 {{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
 {{- if and $pvc.backup $pvc.backup.enabled }}
-{{- $clusterName := $.Values.clusterName | required "clusterName name is required" }}
+{{- $_ := set $backupTracker "enabled" true }}
 ---
 apiVersion: v1
-kind: Secret
+kind: ConfigMap
 metadata:
-  name: restic-{{ $pvcName }}-config
+  name: restic-backup-{{ $pvcName }}
   namespace: {{ $.Release.Namespace }}
-type: Opaque
-stringData:
-  B2_ACCOUNT_ID: "<path:avp-secrets:k8s-{{ $clusterName }}.restic-backup.b2-account-id#b2-account-id>"
-  B2_ACCOUNT_KEY: "<path:avp-secrets:k8s-{{ $clusterName }}.restic-backup.b2-account-key#b2-account-key>"
-  RESTIC_HOSTNAME: "{{ $.Release.Namespace }}-{{ $pvcName }}"
-  RESTIC_PASSWORD: "<path:avp-secrets:k8s-{{ $clusterName }}.restic-backup.password#password>"
-  RESTIC_REPOSITORY: "<path:avp-secrets:k8s-{{ $clusterName }}.restic-backup.repository#repository>"
-  RESTIC_RETRY_LOCK: "15m"
+data:
+  RETRY_LOCK: "15m"
+  HOSTNAME: "{{ $.Release.Namespace }}-{{ $pvcName }}"
 
 ---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ $pvcName }}-pvc-backup
+  name: restic-backup-{{ $pvcName }}
   namespace: {{ $.Release.Namespace }}
 spec:
   schedule: "@hourly"
@@ -35,11 +31,15 @@ spec:
         spec:
           restartPolicy: OnFailure
           containers:
-            - name: restic-backup
+            - name: restic
               image: restic/restic:latest
               envFrom:
                 - secretRef:
-                    name: restic-{{ $pvcName }}-config
+                    name: restic-backup
+                  prefix: "RESTIC_"
+                - configMapRef:
+                    name: restic-backup-{{ $pvcName }}
+                  prefix: "RESTIC_"
               volumeMounts:
                 - name: data
                   mountPath: /data
@@ -48,6 +48,11 @@ spec:
                 - -c
                 - |
                   set -euo pipefail
+
+                  export B2_ACCOUNT_ID=${RESTIC_b2_account_id}
+                  export B2_ACCOUNT_KEY=${RESTIC_b2_account_key}
+                  export RESTIC_PASSWORD=${RESTIC_password}
+                  export RESTIC_REPOSITORY=${RESTIC_repository}
 
                   echo "[backup] Checking/initializing restic repo..."
                   if ! restic snapshots > /dev/null 2>&1; then
@@ -81,4 +86,14 @@ spec:
                 claimName: {{ $pvcName }}
 
 {{- end }}
+{{- end }}
+
+{{- if $backupTracker.enabled }}
+{{- /* Expose only the External Secrets inputs we need for restic backups */}}
+{{- $clusterName := default $.Release.Namespace $.Values.clusterName }}
+{{- $subPathSecret := dict "name" "restic-backup" "remoteRefKey" (printf "/k8s-%s/restic-backup" $clusterName) }}
+{{- $externalValues := deepCopy .Values }}
+{{- $_ := set $externalValues "SubPathSecrets" (list $subPathSecret) }}
+---
+{{- include "external-secret-manager.subpath" (dict "Values" $externalValues "Release" .Release "Chart" .Chart "Capabilities" .Capabilities) -}}
 {{- end }}

@@ -9,3 +9,10 @@ maintainers:
     url: https://github.com/komailo/helm-charts
 sources:
   - https://github.com/komailo/helm-charts
+
+dependencies:
+  - name: external-secrets-manager
+    version: "1.0.2"
+    repository: https://komailo.github.io/helm-charts
+    condition: external-secrets-manager.enabled
+    alias: esm

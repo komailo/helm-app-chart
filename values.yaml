@@ -41,6 +41,13 @@
 #           port: 80 # spec.ports[].port
 #           targetPort: http # spec.ports[].targetPort; defaults to container port/name
 #           nodePort: null # required only if service.type == NodePort/LoadBalancer
+
+globals:
+  # External Secrets Manager configuration that are redeclared as we use library chart
+  secretStoreRefKind: ClusterSecretStore
+  secretStoreRefName: aws-ssm-parameter-store-default
+  refreshInterval: 24h
+
 namespace:
   enabled: false
 
