@@ -94,6 +94,5 @@ spec:
 {{- $subPathSecret := dict "name" "restic-backup" "remoteRefKey" (printf "/k8s-%s/restic-backup" $clusterName) }}
 {{- $externalValues := deepCopy .Values }}
 {{- $_ := set $externalValues "SubPathSecrets" (list $subPathSecret) }}
----
 {{- include "external-secret-manager.subpath" (dict "Values" $externalValues "Release" .Release "Chart" .Chart "Capabilities" .Capabilities) -}}
 {{- end }}
