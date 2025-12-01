@@ -24,11 +24,37 @@ envFrom:
 {{- end -}}
 {{- end }}
 
+{{/* Renders env vars with tpl support for values */}}
+{{- define "app-chart.deployment.env" -}}
+{{- $env := .env -}}
+{{- $context := .context -}}
+{{- $appName := .appName -}}
+{{- if $env -}}
+env:
+{{- range $idx, $entry := $env }}
+  - name: {{ required (printf "apps.%s.env[%d].name is required" $appName $idx) $entry.name }}
+    {{- if hasKey $entry "valueFrom" }}
+    valueFrom:
+{{ tpl (toYaml $entry.valueFrom) $context | nindent 6 }}
+    {{- else if hasKey $entry "value" }}
+    value: {{ tpl $entry.value $context | quote }}
+    {{- else }}
+    {{- fail (printf "apps.%s.env[%d] requires either value or valueFrom" $appName $idx) }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{/* Renders optional livenessProbe for a container */}}
 {{- define "app-chart.deployment.livenessProbe" -}}
 {{- $probe := .livenessProbe -}}
 {{- $appName := .appName -}}
-{{- if and $probe (ne ($probe.enabled | default true) false) -}}
+{{- if $probe -}}
+  {{- $enabled := true -}}
+  {{- if hasKey $probe "enabled" -}}
+    {{- $enabled = $probe.enabled -}}
+  {{- end -}}
+  {{- if $enabled -}}
 livenessProbe:
   {{- $probeType := default "command" $probe.type }}
   {{- if eq $probeType "command" }}
@@ -55,6 +81,48 @@ livenessProbe:
   {{- end }}
   {{- with $probe.failureThreshold }}
   failureThreshold: {{ . }}
+  {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Renders optional readinessProbe for a container */}}
+{{- define "app-chart.deployment.readinessProbe" -}}
+{{- $probe := .readinessProbe -}}
+{{- $appName := .appName -}}
+{{- if $probe -}}
+  {{- $enabled := true -}}
+  {{- if hasKey $probe "enabled" -}}
+    {{- $enabled = $probe.enabled -}}
+  {{- end -}}
+  {{- if $enabled -}}
+readinessProbe:
+  {{- $probeType := default "command" $probe.type }}
+  {{- if eq $probeType "command" }}
+  exec:
+    command:
+    {{- $command := required (printf "apps.%s.readinessProbe.command is required when type=command" $appName) $probe.command }}
+    {{- range $cmd := $command }}
+      - {{ $cmd | quote }}
+    {{- end }}
+  {{- else }}
+  {{- fail (printf "apps.%s.readinessProbe.type %s is not supported" $appName $probeType) }}
+  {{- end }}
+  {{- with $probe.initialDelaySeconds }}
+  initialDelaySeconds: {{ . }}
+  {{- end }}
+  {{- with $probe.periodSeconds }}
+  periodSeconds: {{ . }}
+  {{- end }}
+  {{- with $probe.timeoutSeconds }}
+  timeoutSeconds: {{ . }}
+  {{- end }}
+  {{- with $probe.successThreshold }}
+  successThreshold: {{ . }}
+  {{- end }}
+  {{- with $probe.failureThreshold }}
+  failureThreshold: {{ . }}
+  {{- end }}
   {{- end }}
 {{- end }}
 {{- end }}

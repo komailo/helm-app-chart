@@ -19,6 +19,16 @@
 #     image:
 #       repository: "traefik/whoami"
 #       tag: null
+#     envFrom:
+#       - secretRef:
+#           name: uptime-kuma-env
+#     env:
+#       - name: BASE_URL
+#         value: "https://{{ .Release.Namespace }}.example.com"
+#       - name: POD_NAME
+#         valueFrom:
+#           fieldRef:
+#             fieldPath: metadata.name
 #     livenessProbe:
 #       enabled: true
 #       type: command
@@ -29,6 +39,16 @@
 #       periodSeconds: 10
 #       timeoutSeconds: 1
 #       failureThreshold: 3
+#     readinessProbe:
+#       enabled: true
+#       type: command
+#       command:
+#         - cat
+#         - /tmp/ready
+#       initialDelaySeconds: 5
+#       periodSeconds: 10
+#       timeoutSeconds: 1
+#       successThreshold: 1
 #     service:
 #       type: ClusterIP
 #     ports:
