@@ -52,3 +52,6 @@ namespace:
   enabled: false
 
 persistentVolumeClaims:
+
+mariadb:
+  enabled: false

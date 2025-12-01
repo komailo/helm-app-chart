@@ -15,6 +15,15 @@ ports:
 {{- end -}}
 {{- end }}
 
+{{/* Renders envFrom sources for a container */}}
+{{- define "app-chart.deployment.envFrom" -}}
+{{- $envFrom := .envFrom -}}
+{{- if $envFrom -}}
+envFrom:
+{{- toYaml $envFrom | nindent 2 -}}
+{{- end -}}
+{{- end }}
+
 {{/* Renders optional livenessProbe for a container */}}
 {{- define "app-chart.deployment.livenessProbe" -}}
 {{- $probe := .livenessProbe -}}
