@@ -11,6 +11,12 @@
 {{- $defaultPortName := default (printf "%s-%d" $appName $firstContainerPort) $firstPort.name }}
 {{- $serviceName := $appName }}
 {{- $ingressName := $appName }}
+{{- $tlsHosts := list }}
+{{- range $hostEntry := $ing.hosts }}
+{{- if (default true $hostEntry.tls) }}
+{{- $tlsHosts = append $tlsHosts $hostEntry.host }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -30,16 +36,12 @@ spec:
 {{- if $ing.className }}
   ingressClassName: {{ $ing.className }}
 {{- end }}
-{{- if $ing.tls }}
+{{- if $tlsHosts }}
   tls:
-{{- range $tls := $ing.tls }}
     - secretName: {{ $ingressName }}-tls
-{{- if $tls.hosts }}
       hosts:
-{{- range $host := $tls.hosts }}
-        - {{ $host }}
-{{- end }}
-{{- end }}
+{{- range $tlsHost := $tlsHosts }}
+        - {{ $tlsHost }}
 {{- end }}
 {{- end }}
   rules:
