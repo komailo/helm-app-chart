@@ -1,77 +1,128 @@
-# apps:
-#   whoami:
-#     enabled: true
-#     replicas: 2
-#     ingress:
-#       enabled: false
-#       className: nginx
-#       certManagerClusterIssuer: "letsencrypt-prod"
-#       annotations: {}
-#       hosts:
-#         - host: whoami.local
-#           paths:
-#             - path: /
-#               pathType: Prefix
-#               servicePort: http # maps to the named Service port or a number
-#       tls:
-#         - hosts:
-#             - whoami.local
-#     image:
-#       repository: "traefik/whoami"
-#       tag: null
-#     envFrom:
-#       - secretRef:
-#           name: uptime-kuma-env
-#     env:
-#       - name: BASE_URL
-#         value: "https://{{ .Release.Namespace }}.example.com"
-#       - name: POD_NAME
-#         valueFrom:
-#           fieldRef:
-#             fieldPath: metadata.name
-#     livenessProbe:
-#       enabled: true
-#       type: command
-#       command:
-#         - cat
-#         - /tmp/healthy
-#       initialDelaySeconds: 5
-#       periodSeconds: 10
-#       timeoutSeconds: 1
-#       failureThreshold: 3
-#     readinessProbe:
-#       enabled: true
-#       type: command
-#       command:
-#         - cat
-#         - /tmp/ready
-#       initialDelaySeconds: 5
-#       periodSeconds: 10
-#       timeoutSeconds: 1
-#       successThreshold: 1
-#     service:
-#       type: ClusterIP
-#     ports:
-#       - name: http
-#         containerPort: 8080 # spec.template.spec.containers[].ports[].containerPort
-#         protocol: TCP # optional; defaults to TCP
-#         service:
-#           enabled: true # set false for internal-only container ports
-#           type: ClusterIP # optional; defaults to ClusterIP
-#           port: 80 # spec.ports[].port
-#           targetPort: http # spec.ports[].targetPort; defaults to container port/name
-#           nodePort: null # required only if service.type == NodePort/LoadBalancer
+# Default values for the app chart.
+# This file is lightweight on purpose—copy examples from the README or `test-values.yaml`.
 
+# -- Global configuration shared by helper subcharts (e.g., External Secrets Manager).
 globals:
   # External Secrets Manager configuration that are redeclared as we use library chart
   secretStoreRefKind: ClusterSecretStore
   secretStoreRefName: aws-ssm-parameter-store-default
   refreshInterval: 24h
 
+# -- Opinionated defaults reused by other features and this chart. It also acts as a global configuration.
+defaults:
+  backup:
+    # -- Default Cron expression for PVC backup jobs when a PVC omits `backup.schedule`.
+    schedule: "*/30 * * * *"
+
+    # 📦 Total snapshots (approx.)
+    # 48 hourly
+    # 14 daily
+    # 12 weekly
+    # 24 monthly
+    # 3 yearly
+    # ≈ 101 snapshots total
+    # -- Restic retention policy when a PVC does not override `backup.pruningPolicy`.
+    pruningPolicy:
+      keepLast: 30 # this is a safety net in addition to the time-based policies
+      keepHourly: 48
+      keepDaily: 14
+      keepWeekly: 12
+      keepMonthly: 24
+      keepYearly: 3
+
+# -- Optional cluster identifier used when building paths for shared backup secrets.
+clusterName: ""
+
+# -- Create the target namespace as part of the release (disabled by default).
 namespace:
   enabled: false
 
-persistentVolumeClaims:
+# -- Map of application workloads rendered as Deployments/Services/Ingresses.
+apps:
+  {}
+  #   whoami:
+  #     enabled: true
+  #     replicas: 2
+  #     ingress:
+  #       enabled: false
+  #       className: nginx
+  #       certManagerClusterIssuer: "letsencrypt-prod"
+  #       annotations: {}
+  #       hosts:
+  #         - host: whoami.local
+  #           paths:
+  #             - path: /
+  #               pathType: Prefix
+  #               servicePort: http # maps to the named Service port or a number
+  #       tls:
+  #         - hosts:
+  #             - whoami.local
+  #     image:
+  #       repository: "traefik/whoami"
+  #       tag: null
+  #     envFrom:
+  #       - secretRef:
+  #           name: uptime-kuma-env
+  #     env:
+  #       - name: BASE_URL
+  #         value: "https://{{ .Release.Namespace }}.example.com"
+  #       - name: POD_NAME
+  #         valueFrom:
+  #           fieldRef:
+  #             fieldPath: metadata.name
+  #     livenessProbe:
+  #       enabled: true
+  #       type: command
+  #       command:
+  #         - cat
+  #         - /tmp/healthy
+  #       initialDelaySeconds: 5
+  #       periodSeconds: 10
+  #       timeoutSeconds: 1
+  #       failureThreshold: 3
+  #     readinessProbe:
+  #       enabled: true
+  #       type: command
+  #       command:
+  #         - cat
+  #         - /tmp/ready
+  #       initialDelaySeconds: 5
+  #       periodSeconds: 10
+  #       timeoutSeconds: 1
+  #       successThreshold: 1
+  #     service:
+  #       type: ClusterIP
+  #     ports:
+  #       - name: http
+  #         containerPort: 8080 # spec.template.spec.containers[].ports[].containerPort
+  #         protocol: TCP # optional; defaults to TCP
+  #         service:
+  #           enabled: true # set false for internal-only container ports
+  #           type: ClusterIP # optional; defaults to ClusterIP
+  #           port: 80 # spec.ports[].port
+  #           targetPort: http # spec.ports[].targetPort; defaults to container port/name
+  #           nodePort: null # required only if service.type == NodePort/LoadBalancer
 
+# -- Map of named PersistentVolumeClaims rendered ahead of workloads.
+persistentVolumeClaims:
+  {}
+  # mariadb-data:
+  #   backup:
+  #     enabled: true
+  #   storageClassName: local-path-ott-production-1-data-1
+  #   storage: 10Gi
+
+# -- Map of CronJob definitions rendered via `templates/cronjob.yaml`.
+cronJobs: {}
+
+# -- Downstream MariaDB dependency configuration. Left disabled unless the subchart is used.
 mariadb:
   enabled: false
+
+esm:
+  {}
+  # SubPathSecrets:
+  #   - name: mariadb-credentials
+  #     remoteRefKey: /my-cluster/phpipam/mariadb-credentials
+  #   - name: app-secrets
+  #     remoteRefKey: /my-cluster/phpipam/app

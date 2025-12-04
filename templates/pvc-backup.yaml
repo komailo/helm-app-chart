@@ -1,6 +1,18 @@
 {{- $backupTracker := dict "enabled" false }}
+{{- $defaults := default (dict) .Values.defaults }}
+{{- $defaultBackup := default (dict) $defaults.backup }}
+{{- $defaultPruning := default (dict) $defaultBackup.pruningPolicy }}
+{{- $defaultSchedule := default "@hourly" $defaultBackup.schedule }}
 {{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
 {{- if and $pvc.backup $pvc.backup.enabled }}
+{{- $pruning := default (dict) $pvc.backup.pruningPolicy }}
+{{- $keepLast := default $defaultPruning.keepLast $pruning.keepLast }}
+{{- $keepHourly := default $defaultPruning.keepHourly $pruning.keepHourly }}
+{{- $keepDaily := default $defaultPruning.keepDaily $pruning.keepDaily }}
+{{- $keepWeekly := default $defaultPruning.keepWeekly $pruning.keepWeekly }}
+{{- $keepMonthly := default $defaultPruning.keepMonthly $pruning.keepMonthly }}
+{{- $keepYearly := default $defaultPruning.keepYearly $pruning.keepYearly }}
+
 {{- $_ := set $backupTracker "enabled" true }}
 ---
 apiVersion: v1
@@ -19,9 +31,9 @@ metadata:
   name: restic-backup-{{ $pvcName }}
   namespace: {{ $.Release.Namespace }}
 spec:
-  schedule: "@hourly"
-  successfulJobsHistoryLimit: 2
-  failedJobsHistoryLimit: 2
+  schedule: "{{ default $defaultSchedule $pvc.backup.schedule }}"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
@@ -49,6 +61,11 @@ spec:
                 - |
                   set -euo pipefail
 
+                  # Random jitter between 0 and 600 seconds (0-10 minutes)
+                  JITTER=$((RANDOM % 600))
+                  echo "Sleeping for ${JITTER}s before starting work..."
+                  sleep "${JITTER}"
+
                   export B2_ACCOUNT_ID=${RESTIC_b2_account_id}
                   export B2_ACCOUNT_KEY=${RESTIC_b2_account_key}
                   export RESTIC_PASSWORD=${RESTIC_password}
@@ -70,11 +87,13 @@ spec:
 
                   echo "[backup] Applying retention policy + prune..."
                   restic forget \
-                    --keep-daily 7 \
-                    --keep-weekly 4 \
-                    --keep-monthly 3 \
+                    --keep-last "{{ $keepLast }}" \
+                    --keep-hourly "{{ $keepHourly }}" \
+                    --keep-daily "{{ $keepDaily }}" \
+                    --keep-weekly "{{ $keepWeekly }}" \
+                    --keep-monthly "{{ $keepMonthly }}" \
+                    --keep-yearly "{{ $keepYearly }}" \
                     --retry-lock "$RESTIC_RETRY_LOCK" \
-                    --prune \
                     --tag="pvc={{ $pvcName }}" \
                     --tag="namespace={{ $.Release.Namespace }}"
 
