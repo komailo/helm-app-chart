@@ -2,7 +2,7 @@ apiVersion: v2
 name: app-chart
 description: A Helm Chart for generating Kubernetes resources for app deployment
 type: application
-version: 0.2.0
+version: 0.2.1
 
 maintainers:
   - name: komailo
@@ -12,7 +12,7 @@ sources:
 
 dependencies:
   - name: external-secrets-manager
-    version: "1.0.4"
+    version: "1.0.5"
     repository: https://komailo.github.io/helm-charts
     condition: external-secrets-manager.enabled
     alias: esm
