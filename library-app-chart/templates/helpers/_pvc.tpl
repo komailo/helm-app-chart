@@ -1,5 +1,5 @@
 {{/* Renders a PersistentVolumeClaim manifest for reuse */}}
-{{- define "app-chart.pvc.claim" -}}
+{{- define "library-app-chart.pvc.claim" -}}
 {{- $name := required "pvc.claim requires a pvc name" .name -}}
 {{- $pvc := required (printf "persistentVolumeClaims.%s is required" $name) .pvc -}}
 {{- $root := required "pvc.claim requires the root context" .root -}}

@@ -1,0 +1,48 @@
+version: "3"
+
+vars:
+  VALUES_REPO: https://github.com/komailo/helm-values.git
+  VALUES_DIR: .task-tmp/helm-values
+  VALUES_ROOT: "{{.VALUES_DIR}}/app-chart"
+  CHART_DIR: ./app-chart
+
+silent: false
+
+tasks:
+  test-values:
+    desc: Clone komail/helm-values and render this chart against every values file under app-chart
+    cmds:
+      - |
+        set -euo pipefail
+        mkdir -p "$(dirname {{.VALUES_DIR}})"
+        rm -rf "{{.VALUES_DIR}}"
+        git clone --depth 1 "{{.VALUES_REPO}}" "{{.VALUES_DIR}}"
+      - |
+        set -euo pipefail
+        if [ ! -d "{{.VALUES_ROOT}}" ]; then
+          echo "expected {{.VALUES_ROOT}} to exist" >&2
+          exit 1
+        fi
+        mkdir -p .generated/app-charts
+
+        helm dependency update "{{.CHART_DIR}}"
+
+        for suite in "{{.VALUES_ROOT}}"/*; do
+          [ -d "$suite" ] || continue
+          release="$(basename "$suite")"
+          ran_any=false
+          for values in "$suite"/*.yaml; do
+            if [ ! -f "$values" ]; then
+              continue
+            fi
+            ran_any=true
+            outDir=".generated/app-charts/$release"
+            mkdir -p "$outDir"
+            outFile="$outDir/$(basename "$values")"
+            echo "==> helm template $release using $values -> $outFile"
+            helm template "$release" "{{.CHART_DIR}}" --namespace "$release" --values "$values" > "$outFile"
+          done
+          if [ "$ran_any" = false ]; then
+            echo "(skipping $release - no .yaml files)" >&2
+          fi
+        done

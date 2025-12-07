@@ -125,6 +125,6 @@ spec:
 {{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
 ---
 {{- if and $pvc.backup $pvc.backup.enabled }}
-{{- include "app-chart.pvc.claim" (dict "name" (printf "%s-restic-cache" $pvcName) "pvc" $pvc "root" $) }}
+{{- include "library-app-chart.pvc.claim" (dict "name" (printf "%s-restic-cache" $pvcName) "pvc" $pvc "root" $) }}
 {{- end }}
 {{- end }}

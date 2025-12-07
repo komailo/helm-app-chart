@@ -1,52 +1,69 @@
 name: Build Helm Chart
 
 on:
-    push:
-        branches: [main, master]
-    pull_request:
+  push:
+    branches: [main, master]
+  pull_request:
 
 jobs:
-    build:
-        name: Lint, package, and publish chart
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            packages: write
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+  build:
+    name: Lint, package, and publish chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      CHARTS: "app-chart meta-app-chart"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-            - name: Set up Helm
-              uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
-              with:
-                  version: v3.12.0
+      - name: Set up Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: v3.12.0
 
-            - name: Show helm version
-              run: helm version --short
+      - name: Show helm version
+        run: helm version --short
 
-            - name: Update chart dependencies (if any)
-              run: |
-                  helm dependency update . || true
+      - name: Update chart dependencies (if any)
+        run: |
+          set -euo pipefail
+          for chart in $CHARTS; do
+              (cd "$chart" && helm dependency update .)
+          done
 
-            - name: Helm lint
-              run: helm lint . --values values.yaml
+      - name: Helm lint
+        run: |
+          set -euo pipefail
+          for chart in $CHARTS; do
+              (cd "$chart" && helm lint . --values values.yaml)
+          done
 
-            - name: Helm template (render manifests)
-              run: helm template . --values values.yaml > rendered.yaml
+      - name: Helm template (render manifests)
+        run: |
+          set -euo pipefail
+          mkdir -p rendered
+          for chart in $CHARTS; do
+              (cd "$chart" && helm template . --values values.yaml) > "rendered/${chart}.yaml"
+          done
 
-            - name: Package chart
-              run: |
-                  mkdir -p packaged
-                  helm package . --destination packaged
+      - name: Package charts
+        run: |
+          set -euo pipefail
+          mkdir -p packaged
+          for chart in $CHARTS; do
+              helm package "$chart" --destination packaged
+          done
 
-            - name: Log in to GitHub Container Registry
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  echo "${GH_TOKEN}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${GH_TOKEN}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
 
-            - name: Push chart to GitHub Packages (OCI)
-              run: |
-                  for chart in packaged/*.tgz; do
-                      helm push "$chart" oci://ghcr.io/${{ github.repository_owner }}/helm
-                  done
+      - name: Push chart to GitHub Packages (OCI)
+        run: |
+          for chart in packaged/*.tgz; do
+              helm push "$chart" oci://ghcr.io/${{ github.repository_owner }}/helm
+          done

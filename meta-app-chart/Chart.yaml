@@ -1,0 +1,16 @@
+apiVersion: v2
+name: meta-app-chart
+description: Placeholder meta chart that will orchestrate other app bundles
+version: 0.2.1
+type: application
+
+maintainers:
+  - name: komailo
+    url: https://github.com/komailo/helm-charts
+sources:
+  - https://github.com/komailo/helm-charts
+
+dependencies:
+  - name: library-app-chart
+    version: "0.2.1"
+    repository: file://../library-app-chart

@@ -1,0 +1,403 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "clusterName": {
+      "type": "string",
+      "description": "Optional identifier used when building names for shared backup secrets.",
+      "default": ""
+    },
+    "globals": {
+      "type": "object",
+      "properties": {
+        "secretStoreRefKind": {
+          "type": "string",
+          "description": "External Secrets store kind.",
+          "default": "ClusterSecretStore"
+        },
+        "secretStoreRefName": {
+          "type": "string",
+          "description": "External Secrets store name.",
+          "default": "aws-ssm-parameter-store-default"
+        },
+        "refreshInterval": {
+          "type": "string",
+          "description": "Refresh cadence for mirrored secrets.",
+          "default": "24h"
+        }
+      },
+      "additionalProperties": true
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "backup": {
+          "type": "object",
+          "properties": {
+            "schedule": {
+              "type": "string",
+              "description": "Fallback Cron expression for PVC backup jobs.",
+              "default": "*/30 * * * *"
+            },
+            "pruningPolicy": {
+              "type": "object",
+              "properties": {
+                "keepLast": { "type": "integer", "minimum": 0 },
+                "keepHourly": { "type": "integer", "minimum": 0 },
+                "keepDaily": { "type": "integer", "minimum": 0 },
+                "keepWeekly": { "type": "integer", "minimum": 0 },
+                "keepMonthly": { "type": "integer", "minimum": 0 },
+                "keepYearly": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "namespace": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Set true to render the Namespace manifest.",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "apps": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": { "$ref": "#/definitions/appSpec" }
+    },
+    "persistentVolumeClaims": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": { "$ref": "#/definitions/pvcSpec" }
+    },
+    "cronJobs": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": { "$ref": "#/definitions/cronJobSpec" }
+    },
+    "mariadb": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "esm": {
+      "type": "object",
+      "properties": {
+        "SubPathSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "remoteRefKey": { "type": "string" }
+            },
+            "required": ["name", "remoteRefKey"],
+            "additionalProperties": false
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "definitions": {
+    "envVar": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "value": { "type": "string" },
+        "valueFrom": { "type": "object" }
+      },
+      "required": ["name"],
+      "additionalProperties": true
+    },
+    "envFromSource": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "volumeSpec": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "mountPath": { "type": "string" },
+        "persistentVolumeClaim": {
+          "type": "object",
+          "properties": {
+            "claimName": { "type": "string" }
+          },
+          "required": ["claimName"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["name", "mountPath", "persistentVolumeClaim"],
+      "additionalProperties": false
+    },
+    "probe": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "type": { "type": "string" },
+        "command": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "initialDelaySeconds": { "type": "integer", "minimum": 0 },
+        "periodSeconds": { "type": "integer", "minimum": 0 },
+        "timeoutSeconds": { "type": "integer", "minimum": 0 },
+        "successThreshold": { "type": "integer", "minimum": 0 },
+        "failureThreshold": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "servicePort": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "type": { "type": "string" },
+        "port": { "type": "integer", "minimum": 1 },
+        "targetPort": {
+          "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "string" }]
+        },
+        "nodePort": {
+          "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+        }
+      },
+      "additionalProperties": true
+    },
+    "portSpec": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "containerPort": { "type": "integer", "minimum": 1 },
+        "protocol": { "type": "string", "default": "TCP" },
+        "service": { "$ref": "#/definitions/servicePort" }
+      },
+      "additionalProperties": false
+    },
+    "ingressPath": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string" },
+        "pathType": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "servicePort": {
+          "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "string" }]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ingressHost": {
+      "type": "object",
+      "properties": {
+        "host": { "type": "string" },
+        "paths": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ingressPath" },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": { "type": "string" },
+        "tag": { "type": ["string", "null"] },
+        "pullPolicy": { "type": "string" }
+      },
+      "required": ["repository"],
+      "additionalProperties": false
+    },
+    "appSpec": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "replicas": { "type": "integer", "minimum": 1 },
+        "deployStrategy": { "type": "string" },
+        "image": { "$ref": "#/definitions/image" },
+        "env": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/envVar" },
+          "default": []
+        },
+        "envFrom": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/envFromSource" },
+          "default": []
+        },
+        "livenessProbe": { "$ref": "#/definitions/probe" },
+        "readinessProbe": { "$ref": "#/definitions/probe" },
+        "service": { "$ref": "#/definitions/servicePort" },
+        "ports": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/portSpec" },
+          "default": []
+        },
+        "volumes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/volumeSpec" },
+          "default": []
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "className": { "type": "string" },
+            "certManagerClusterIssuer": { "type": "string" },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "hosts": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ingressHost" }
+            },
+            "tls": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "hosts": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["image"],
+      "additionalProperties": true
+    },
+    "backupPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "schedule": { "type": "string" },
+        "pruningPolicy": {
+          "type": "object",
+          "properties": {
+            "keepLast": { "type": "integer", "minimum": 0 },
+            "keepHourly": { "type": "integer", "minimum": 0 },
+            "keepDaily": { "type": "integer", "minimum": 0 },
+            "keepWeekly": { "type": "integer", "minimum": 0 },
+            "keepMonthly": { "type": "integer", "minimum": 0 },
+            "keepYearly": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "pvcSpec": {
+      "type": "object",
+      "properties": {
+        "storageClassName": { "type": "string" },
+        "storage": { "type": "string" },
+        "backup": { "$ref": "#/definitions/backupPolicy" }
+      },
+      "required": ["storageClassName", "storage"],
+      "additionalProperties": false
+    },
+    "cronJobContainer": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "image": { "$ref": "#/definitions/image" },
+        "command": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "env": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/envVar" },
+          "default": []
+        },
+        "envFrom": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/envFromSource" },
+          "default": []
+        },
+        "resources": { "type": "object" },
+        "securityContext": { "type": "object" }
+      },
+      "required": ["image"],
+      "additionalProperties": true
+    },
+    "cronJobPod": {
+      "type": "object",
+      "properties": {
+        "restartPolicy": { "type": "string" },
+        "serviceAccountName": { "type": "string" },
+        "nodeSelector": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "tolerations": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "affinity": { "type": "object" },
+        "securityContext": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "cronJobSpec": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "schedule": { "type": "string" },
+        "concurrencyPolicy": { "type": "string" },
+        "successfulJobsHistoryLimit": { "type": "integer", "minimum": 0 },
+        "failedJobsHistoryLimit": { "type": "integer", "minimum": 0 },
+        "startingDeadlineSeconds": { "type": "integer", "minimum": 0 },
+        "suspend": { "type": "boolean" },
+        "jobTemplate": {
+          "type": "object",
+          "properties": {
+            "ttlSecondsAfterFinished": { "type": "integer", "minimum": 0 },
+            "backoffLimit": { "type": "integer", "minimum": 0 },
+            "activeDeadlineSeconds": { "type": "integer", "minimum": 0 },
+            "parallelism": { "type": "integer", "minimum": 0 },
+            "completions": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "pod": { "$ref": "#/definitions/cronJobPod" },
+        "container": { "$ref": "#/definitions/cronJobContainer" },
+        "volumes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/volumeSpec" },
+          "default": []
+        }
+      },
+      "required": ["schedule", "container"],
+      "additionalProperties": true
+    }
+  }
+}

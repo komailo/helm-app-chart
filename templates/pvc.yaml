@@ -1,3 +1,0 @@
-{{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
-{{- include "app-chart.pvc.claim" (dict "name" $pvcName "pvc" $pvc "root" $) }}
-{{- end }}
