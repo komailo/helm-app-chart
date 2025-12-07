@@ -55,6 +55,8 @@ spec:
               volumeMounts:
                 - name: data
                   mountPath: /data
+                - name: restic-cache
+                  mountPath: /cache/restic
               command:
                 - /bin/sh
                 - -c
@@ -70,6 +72,7 @@ spec:
                   export B2_ACCOUNT_KEY=${RESTIC_b2_account_key}
                   export RESTIC_PASSWORD=${RESTIC_password}
                   export RESTIC_REPOSITORY=${RESTIC_repository}
+                  export RESTIC_CACHE_DIR=/cache/restic
 
                   echo "[backup] Checking/initializing restic repo..."
                   if ! restic snapshots > /dev/null 2>&1; then
@@ -103,6 +106,9 @@ spec:
             - name: data
               persistentVolumeClaim:
                 claimName: {{ $pvcName }}
+            - name: restic-cache
+              persistentVolumeClaim:
+                claimName: {{ printf "%s-restic-cache" $pvcName }}
 
 {{- end }}
 {{- end }}
@@ -114,4 +120,11 @@ spec:
 {{- $externalValues := deepCopy .Values }}
 {{- $_ := set $externalValues "SubPathSecrets" (list $subPathSecret) }}
 {{- include "external-secret-manager.subpath" (dict "Values" $externalValues "Release" .Release "Chart" .Chart "Capabilities" .Capabilities) -}}
+{{- end }}
+
+{{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
+---
+{{- if and $pvc.backup $pvc.backup.enabled }}
+{{- include "app-chart.pvc.claim" (dict "name" (printf "%s-restic-cache" $pvcName) "pvc" $pvc "root" $) }}
+{{- end }}
 {{- end }}

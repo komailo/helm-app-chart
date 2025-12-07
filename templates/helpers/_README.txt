@@ -7,3 +7,7 @@ Deployment helper snippets that keep `templates/deployment.yaml` small and compo
 - app-chart.deployment.readinessProbe: emits optional readiness probes configured via `apps.<name>.readinessProbe`.
 - app-chart.deployment.volumeMounts: renders container `volumeMounts` from `apps.<name>.volumes`.
 - app-chart.deployment.volumes: renders pod `volumes` that back the mounts with PVCs.
+
+PVC helper snippets for `templates/pvc.yaml` and other PVC consumers:
+
+- app-chart.pvc.claim: renders a PVC manifest from `values.persistentVolumeClaims`, keeping namespace scoping and storage settings centralized.
