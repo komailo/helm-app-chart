@@ -1,7 +1,7 @@
 apiVersion: v2
 name: library-app-chart
 description: Shared helpers consumed by the app and meta charts
-version: 0.2.1
+version: 0.0.0
 type: library
 
 maintainers:

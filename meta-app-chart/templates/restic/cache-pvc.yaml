@@ -1,0 +1,3 @@
+{{- if .Values.resticBackup.enabled }}
+{{- include "library-app-chart.pvc.claim" (dict "name" .Values.resticBackup.cachePVC.name "pvc" .Values.resticBackup.cachePVC "root" $) }}
+{{- end }}
