@@ -63,6 +63,8 @@ spec:
                 - |
                   set -euo pipefail
 
+                  cd /data
+
                   # Random jitter between 0 and 600 seconds (0-10 minutes)
                   JITTER=$((RANDOM % 600))
                   echo "Sleeping for ${JITTER}s before starting work..."
@@ -81,8 +83,9 @@ spec:
                   fi
 
                   echo "[backup] Running backup of /data ..."
-                  restic backup /data \
+                  restic backup . \
                     --skip-if-unchanged \
+                    --exclude-if-present NO_BACKUP.TAG \
                     --retry-lock "$RESTIC_RETRY_LOCK" \
                     --host "$RESTIC_HOSTNAME" \
                     --tag="pvc={{ $pvcName }}" \
