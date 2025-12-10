@@ -7,7 +7,7 @@ Renders a Restic maintenance CronJob with shared defaults so sibling charts can 
 {{- $name := required "restic.cronJob requires a job name" $job.name -}}
 {{- $schedule := required (printf "restic.cronJob %s requires a schedule" $name) $job.schedule -}}
 {{- $script := required (printf "restic.cronJob %s requires a script" $name) $job.script -}}
-{{- $cachePVCName := required (printf "restic.cronJob %s requires cachePVCName" $name) $job.cachePVCName -}}
+{{- $cachePVCName := required (printf "restic.cronJob %s requires cachePVCName" $name) $root.Values.resticBackup.cachePVC.name -}}
 {{- $secretName := default "restic-backup" $job.envSecretName -}}
 {{- $configMapName := default $secretName $job.configMapName -}}
 {{- $image := default "restic/restic:latest" $job.image -}}

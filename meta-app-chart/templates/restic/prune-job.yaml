@@ -17,26 +17,15 @@ data:
   RETRY_LOCK: {{ $retryLock | quote }}
   HOSTNAME: {{ $hostname | quote }}
 
-{{- $pruneJob := default (dict) $restic.pruneJob }}
-{{- $pruneEnabled := or (not (hasKey $pruneJob "enabled")) $pruneJob.enabled }}
-{{- if $pruneEnabled }}
-  {{- $job := merge (deepCopy $jobDefaults) $pruneJob }}
-  {{- if not (hasKey $job "name") }}{{- $_ := set $job "name" "restic-prune" }}{{- end }}
-  {{- if not (hasKey $job "schedule") }}{{- $_ := set $job "schedule" "@weekly" }}{{- end }}
-  {{- if not (hasKey $job "script") }}{{- $_ := set $job "script" (printf "echo \"[restic prune] Starting prune operation\"%srestic prune" $newline) }}{{- end }}
-  {{- include "library-app-chart.restic.cronJob" (dict "root" . "job" $job) }}
-{{- end }}
+# Restic Prune Job
+{{ $pruneJob := default (dict) $restic.pruneJob -}}
+{{ include "library-app-chart.restic.cronJob" (dict "root" . "job" $pruneJob) }}
 
-{{- $checkJob := default (dict) $restic.checkJob }}
-{{- $checkEnabled := or (not (hasKey $checkJob "enabled")) $checkJob.enabled }}
-{{- if $checkEnabled }}
-  {{- $job := merge (deepCopy $jobDefaults) $checkJob }}
-  {{- if not (hasKey $job "name") }}{{- $_ := set $job "name" "restic-check" }}{{- end }}
-  {{- if not (hasKey $job "schedule") }}{{- $_ := set $job "schedule" "@monthly" }}{{- end }}
-  {{- if not (hasKey $job "script") }}{{- $_ := set $job "script" (printf "echo \"[restic check] Starting check operation\"%srestic check" $newline) }}{{- end }}
-  {{- include "library-app-chart.restic.cronJob" (dict "root" . "job" $job) }}
-{{- end }}
+# Restic Check Job
+{{ $checkJob := default (dict) $restic.checkJob -}}
+{{ include "library-app-chart.restic.cronJob" (dict "root" . "job" $checkJob) }}
 
+# External Secrets Manager SubPathSecret for Restic
 {{- /* Expose only the External Secrets inputs we need for restic backups */}}
 {{- $clusterName := default .Release.Namespace .Values.clusterName }}
 {{- $subPathSecret := dict "name" $secretName "remoteRefKey" (printf "/k8s-%s/restic-backup" $clusterName) }}

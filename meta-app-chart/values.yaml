@@ -16,6 +16,14 @@ resticBackup:
     # storageClassName: local-path
     # storage: 10Gi
   pruneJob:
+    name: restic-prune
     schedule: "@weekly"
+    script: |
+      echo "[restic prune] Starting prune operation"
+      restic prune
   checkJob:
+    name: restic-check
     schedule: "@monthly"
+    script: |
+      echo "[restic check] Starting check operation"
+      restic check
