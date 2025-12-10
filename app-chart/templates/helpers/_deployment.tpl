@@ -135,6 +135,9 @@ volumeMounts:
 {{- range $volume := $volumes }}
   - name: {{ $volume.name }}
     mountPath: {{ $volume.mountPath | required "mountPath is required for volumeMounts" }}
+    {{- if $volume.subPath }}
+    subPath: {{ $volume.subPath }}
+    {{- end }}
 {{- end }}
 {{- end -}}
 {{- end }}

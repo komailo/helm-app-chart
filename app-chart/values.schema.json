@@ -134,6 +134,10 @@
       "properties": {
         "name": { "type": "string" },
         "mountPath": { "type": "string" },
+        "subPath": {
+          "type": "string",
+          "description": "Optional subPath used when mounting the PVC."
+        },
         "persistentVolumeClaim": {
           "type": "object",
           "properties": {
