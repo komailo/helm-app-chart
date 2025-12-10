@@ -1,76 +1,45 @@
 {{- if .Values.resticBackup.enabled }}
+{{- $restic := .Values.resticBackup }}
+{{- $cachePVCName := required "resticBackup.cachePVC.name is required when resticBackup.enabled" $restic.cachePVC.name }}
+{{- $configMapName := default "restic-backup" $restic.configMapName }}
+{{- $secretName := default $configMapName $restic.secretName }}
+{{- $hostname := default .Release.Namespace $restic.hostname }}
+{{- $retryLock := default "15m" $restic.retryLock }}
+{{- $jobDefaults := dict "cachePVCName" $cachePVCName "envSecretName" $secretName "configMapName" $configMapName }}
+{{- $newline := "\n" }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: restic-backup
-  namespace: "{{ .Release.Namespace }}"
-data:
-  RETRY_LOCK: "15m"
-  HOSTNAME: "{{ .Release.Namespace }}"
-
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: restic-backup
+  name: {{ $configMapName }}
   namespace: {{ .Release.Namespace }}
-spec:
-  schedule: "@daily"
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 1
-  concurrencyPolicy: Forbid
-  jobTemplate:
-    spec:
-      ttlSecondsAfterFinished: 172800 # 2 days
-      backoffLimit: 4
-      template:
-        spec:
-          restartPolicy: OnFailure
-          containers:
-            - name: restic
-              image: restic/restic:latest
-              envFrom:
-                - secretRef:
-                    name: restic-backup
-                  prefix: "RESTIC_"
-                - configMapRef:
-                    name: restic-backup
-                  prefix: "RESTIC_"
-              volumeMounts:
-                - name: restic-cache
-                  mountPath: /cache/restic
-              command:
-                - /bin/sh
-                - -c
-                - |
-                  set -euo pipefail
+data:
+  RETRY_LOCK: {{ $retryLock | quote }}
+  HOSTNAME: {{ $hostname | quote }}
 
-                  export B2_ACCOUNT_ID=${RESTIC_b2_account_id}
-                  export B2_ACCOUNT_KEY=${RESTIC_b2_account_key}
-                  export RESTIC_PASSWORD=${RESTIC_password}
-                  export RESTIC_REPOSITORY=${RESTIC_repository}
-                  export RESTIC_CACHE_DIR=/cache/restic
+{{- $pruneJob := default (dict) $restic.pruneJob }}
+{{- $pruneEnabled := or (not (hasKey $pruneJob "enabled")) $pruneJob.enabled }}
+{{- if $pruneEnabled }}
+  {{- $job := merge (deepCopy $jobDefaults) $pruneJob }}
+  {{- if not (hasKey $job "name") }}{{- $_ := set $job "name" "restic-prune" }}{{- end }}
+  {{- if not (hasKey $job "schedule") }}{{- $_ := set $job "schedule" "@weekly" }}{{- end }}
+  {{- if not (hasKey $job "script") }}{{- $_ := set $job "script" (printf "echo \"[restic prune] Starting prune operation\"%srestic prune" $newline) }}{{- end }}
+  {{- include "library-app-chart.restic.cronJob" (dict "root" . "job" $job) }}
+{{- end }}
 
-                  echo "[backup prune] Starting prune operation"
-                  restic prune
-
-                  restic prune --help
-
-                  echo "[backup check] Starting check operation"
-
-                  restic check
-
-                  restic check --help
-
-          volumes:
-            - name: restic-cache
-              persistentVolumeClaim:
-                claimName: "{{ .Values.resticBackup.cachePVC.name }}"
+{{- $checkJob := default (dict) $restic.checkJob }}
+{{- $checkEnabled := or (not (hasKey $checkJob "enabled")) $checkJob.enabled }}
+{{- if $checkEnabled }}
+  {{- $job := merge (deepCopy $jobDefaults) $checkJob }}
+  {{- if not (hasKey $job "name") }}{{- $_ := set $job "name" "restic-check" }}{{- end }}
+  {{- if not (hasKey $job "schedule") }}{{- $_ := set $job "schedule" "@monthly" }}{{- end }}
+  {{- if not (hasKey $job "script") }}{{- $_ := set $job "script" (printf "echo \"[restic check] Starting check operation\"%srestic check" $newline) }}{{- end }}
+  {{- include "library-app-chart.restic.cronJob" (dict "root" . "job" $job) }}
+{{- end }}
 
 {{- /* Expose only the External Secrets inputs we need for restic backups */}}
 {{- $clusterName := default .Release.Namespace .Values.clusterName }}
-{{- $subPathSecret := dict "name" "restic-backup" "remoteRefKey" (printf "/k8s-%s/restic-backup" $clusterName) }}
+{{- $subPathSecret := dict "name" $secretName "remoteRefKey" (printf "/k8s-%s/restic-backup" $clusterName) }}
 {{- $externalValues := deepCopy .Values }}
 {{- $_ := set $externalValues "SubPathSecrets" (list $subPathSecret) }}
 {{- include "external-secret-manager.subpath" (dict "Values" $externalValues "Release" .Release "Chart" .Chart "Capabilities" .Capabilities) -}}

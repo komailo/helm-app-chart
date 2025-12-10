@@ -7,9 +7,15 @@ globals:
 
 resticBackup:
   enabled: false
+  # Optional override for the hostname stored inside the Restic configmap.
+  hostname: ""
+  # Optional override for the lock retry window.
+  retryLock: 15m
   cachePVC:
     name: restic-cache
     # storageClassName: local-path
     # storage: 10Gi
   pruneJob:
-    schedule: "@daily"
+    schedule: "@weekly"
+  checkJob:
+    schedule: "@monthly"
