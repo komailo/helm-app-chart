@@ -44,7 +44,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: restic
-              image: restic/restic:latest
+              image: {{ printf "%s:%s" $.Values.restic.image.repository $.Values.restic.image.tag }}
               envFrom:
                 - secretRef:
                     name: restic-backup

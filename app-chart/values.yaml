@@ -119,6 +119,12 @@ cronJobs: {}
 mariadb:
   enabled: false
 
+# -- Restic configuration
+restic:
+  image:
+    repository: restic/restic
+    tag: 0.18.1
+
 esm:
   {}
   # SubPathSecrets:

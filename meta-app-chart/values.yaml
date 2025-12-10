@@ -6,6 +6,9 @@ globals:
   refreshInterval: 24h
 
 resticBackup:
+  image: &resticImage
+    repository: restic/restic
+    tag: 0.18.1
   enabled: false
   # Optional override for the hostname stored inside the Restic configmap.
   hostname: ""
@@ -18,12 +21,14 @@ resticBackup:
   pruneJob:
     name: restic-prune
     schedule: "@weekly"
+    image: *resticImage
     script: |
       echo "[restic prune] Starting prune operation"
       restic prune
   checkJob:
     name: restic-check
     schedule: "@monthly"
+    image: *resticImage
     script: |
       echo "[restic check] Starting check operation"
       restic check
