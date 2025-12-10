@@ -147,10 +147,15 @@ volumeMounts:
 {{- $volumes := .volumes -}}
 {{- if $volumes -}}
 volumes:
-{{- range $volume := $volumes }}
-  - name: {{ $volume.name }}
+{{- $seen := dict }}
+{{- range $idx, $volume := $volumes }}
+  {{- $volumeName := required (printf "volumes[%d].name is required" $idx) $volume.name }}
+  {{- if not (hasKey $seen $volumeName) }}
+  - name: {{ $volumeName }}
     persistentVolumeClaim:
-        claimName: {{ $volume.persistentVolumeClaim.claimName }}
+      claimName: {{ $volume.persistentVolumeClaim.claimName }}
+  {{- $_ := set $seen $volumeName true }}
+  {{- end }}
 {{- end }}
 {{- end -}}
 {{- end }}
