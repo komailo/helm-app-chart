@@ -10,7 +10,6 @@ Renders a Restic maintenance CronJob with shared defaults so sibling charts can 
 {{- $cachePVCName := required (printf "restic.cronJob %s requires cachePVCName" $name) $root.Values.resticBackup.cachePVC.name -}}
 {{- $secretName := default "restic-backup" $job.envSecretName -}}
 {{- $configMapName := default $secretName $job.configMapName -}}
-{{- $image := default "restic/restic:latest" $job.image -}}
 {{- $containerName := default "restic" $job.containerName -}}
 {{- $successfulHistory := default 1 $job.successfulJobsHistoryLimit -}}
 {{- $failedHistory := default 1 $job.failedJobsHistoryLimit -}}
@@ -42,7 +41,7 @@ spec:
           restartPolicy: {{ $restartPolicy }}
           containers:
             - name: {{ $containerName }}
-              image: {{ $image }}
+              image: {{ $image.repository }}:{{ $image.tag }}
               envFrom:
                 - secretRef:
                     name: {{ $secretName }}
