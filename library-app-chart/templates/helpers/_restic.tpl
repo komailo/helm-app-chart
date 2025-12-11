@@ -41,7 +41,7 @@ spec:
           restartPolicy: {{ $restartPolicy }}
           containers:
             - name: {{ $containerName }}
-              image: {{ $image.repository }}:{{ $image.tag }}
+              image: {{ $job.image.repository }}:{{ $job.image.tag }}
               envFrom:
                 - secretRef:
                     name: {{ $secretName }}
