@@ -2,7 +2,7 @@ apiVersion: v2
 name: app-chart
 description: A Helm Chart for generating Kubernetes resources for app deployment
 type: application
-version: 0.2.1
+version: 0.2.2
 
 maintainers:
   - name: komailo
@@ -17,7 +17,7 @@ dependencies:
     condition: external-secrets-manager.enabled
     alias: esm
   - name: mariadb
-    version: "24.0.0"
+    version: "24.0.1"
     repository: oci://registry-1.docker.io/bitnamicharts
     condition: mariadb.enabled
   - name: library-app-chart
