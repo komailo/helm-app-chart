@@ -1,5 +1,5 @@
 {{- range $appName, $app := .Values.apps }}
-{{- if $app.enabled | default true }}
+{{- if or (not (hasKey $app "enabled")) $app.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment

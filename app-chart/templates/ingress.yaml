@@ -1,7 +1,7 @@
 {{- $root := . }}
 {{- range $appName, $app := .Values.apps }}
 {{- $ing := $app.ingress }}
-{{- if and ($app.enabled | default true) ($ing.enabled | default false) ($ing.hosts) }}
+{{- if and (or (not (hasKey $app "enabled")) $app.enabled) ($ing.enabled | default false) ($ing.hosts) }}
 {{- $ports := $app.ports }}
 {{- if not $ports }}
 {{- $ports = list (dict "name" "http" "containerPort" 80 "protocol" "TCP") }}
