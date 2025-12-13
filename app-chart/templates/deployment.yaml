@@ -24,10 +24,10 @@ spec:
       containers:
         - image: "{{ $app.image.repository }}:{{ $app.image.tag | default "latest" }}"
           name: {{ $appName }}
-      {{- with $app.args }}
+{{- with $app.args }}
           args:
 {{ toYaml . | nindent 12 }}
-      {{- end }}
+{{- end }}
       {{- with (include "app-chart.deployment.containerPorts" (dict "ports" $app.ports "appName" $appName)) }}{{ . | nindent 10 }}{{- end }}
       {{- with (include "app-chart.deployment.envFrom" (dict "envFrom" $app.envFrom)) }}{{ . | nindent 10 }}{{- end }}
       {{- with (include "app-chart.deployment.env" (dict "env" $app.env "context" $ "appName" $appName)) }}{{ . | nindent 10 }}{{- end }}
