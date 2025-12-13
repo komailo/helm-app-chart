@@ -233,6 +233,11 @@
         "replicas": { "type": "integer", "minimum": 1 },
         "deployStrategy": { "type": "string" },
         "image": { "$ref": "#/definitions/image" },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
         "env": {
           "type": "array",
           "items": { "$ref": "#/definitions/envVar" },

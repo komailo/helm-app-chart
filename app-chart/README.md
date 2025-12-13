@@ -56,6 +56,7 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 | `replicas`         | int    | Number of pod replicas.                                                                                                   | `1`                                                    |
 | `image.repository` | string | Container image repository (e.g., `traefik/whoami`).                                                                      | **required**                                           |
 | `image.tag`        | string | Image tag; falls back to `latest` if omitted.                                                                             | `latest`                                               |
+| `args`             | array  | Optional array of arguments passed to the container. Each element is a string.                                             | `[]`                                                   |
 | `envFrom`          | array  | Array of Kubernetes `envFrom` entries (ConfigMapRefs, SecretRefs, etc.) copied verbatim into the Deployment.              | `[]`                                                   |
 | `ports`            | array  | Port definitions exposed on the container; also drives Service ports.                                                     | `[{ name: "http", containerPort: 80, protocol: TCP }]` |
 | `service`          | object | App-wide Service defaults (e.g., `type: ClusterIP`). Per-port service overrides live under `ports[].service`.             | `{ type: ClusterIP }`                                  |

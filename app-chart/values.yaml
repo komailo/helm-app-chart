@@ -60,6 +60,9 @@ apps:
   #     image:
   #       repository: "traefik/whoami"
   #       tag: null
+  #     args:
+  #       - "--flag1"
+  #       - "--flag2=value"
   #     envFrom:
   #       - secretRef:
   #           name: uptime-kuma-env
