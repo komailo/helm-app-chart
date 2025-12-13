@@ -1,5 +1,5 @@
 {{- range $jobName, $job := .Values.cronJobs }}
-{{- if $job.enabled | default true }}
+{{- if or (not (hasKey $job "enabled")) $job.enabled }}
 {{- $metadataLabels := merge (dict "app" $jobName) (default (dict) $job.labels) }}
 {{- $jobTemplate := default (dict) $job.jobTemplate }}
 {{- $pod := default (dict) $job.pod }}

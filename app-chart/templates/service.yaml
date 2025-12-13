@@ -1,5 +1,5 @@
 {{- range $appName, $app := .Values.apps }}
-{{- if $app.enabled | default true }}
+{{- if or (not (hasKey $app "enabled")) $app.enabled }}
 {{- $ports := $app.ports }}
 {{- if not $ports }}
 {{- $ports = list (dict "name" "http" "containerPort" 80 "protocol" "TCP" "service" (dict "enabled" true "port" 80)) }}
@@ -23,7 +23,7 @@ spec:
 {{- $portName := default (printf "%s-%d" $appName $containerPort) $port.name }}
 {{- $protocol := default "TCP" $port.protocol }}
 {{- $svc := default dict $port.service }}
-{{- if $svc.enabled | default true }}
+{{- if or (not (hasKey $svc "enabled")) $svc.enabled }}
     - name: {{ $portName }}
       port: {{ default $containerPort $svc.port }}
       targetPort: {{ default $portName $svc.targetPort }}
