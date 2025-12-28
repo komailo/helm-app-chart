@@ -91,6 +91,9 @@ spec:
                     --host "$RESTIC_HOSTNAME" \
                     --tag="pvc={{ $pvcName }}" \
                     --tag="namespace={{ $.Release.Namespace }}"
+                  
+                  echo "[restic unlock] Starting stale lock removal operation"
+                  restic unlock
 
                   echo "[backup] Applying retention policy + prune..."
                   restic forget \

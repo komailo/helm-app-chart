@@ -23,6 +23,8 @@ resticBackup:
     name: restic-prune
     schedule: "@weekly"
     script: |
+      echo "[restic unlock] Starting stale lock removal operation"
+      restic unlock
       echo "[restic prune] Starting prune operation"
       restic prune
   checkJob:
@@ -30,5 +32,7 @@ resticBackup:
     name: restic-check
     schedule: "@monthly"
     script: |
+      echo "[restic unlock] Starting stale lock removal operation"
+      restic unlock
       echo "[restic check] Starting check operation"
       restic check

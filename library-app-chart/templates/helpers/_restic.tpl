@@ -58,10 +58,10 @@ spec:
                 - |
                   set -euo pipefail
 
-                  export B2_ACCOUNT_ID=${RESTIC_b2_account_id}
-                  export B2_ACCOUNT_KEY=${RESTIC_b2_account_key}
                   export RESTIC_PASSWORD=${RESTIC_password}
                   export RESTIC_REPOSITORY=${RESTIC_repository}
+                  export AWS_ACCESS_KEY_ID=${RESTIC_aws_access_key_id}
+                  export AWS_SECRET_ACCESS_KEY=${RESTIC_aws_secret_access_key}
                   export RESTIC_CACHE_DIR=/cache/restic
 
 {{ $script | nindent 18 }}
