@@ -69,6 +69,11 @@
       },
       "additionalProperties": false
     },
+    "configMaps": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": { "$ref": "#/definitions/configMapSpec" }
+    },
     "apps": {
       "type": "object",
       "default": {},
@@ -148,6 +153,60 @@
         }
       },
       "required": ["name", "mountPath", "persistentVolumeClaim"],
+      "additionalProperties": false
+    },
+    "configMapItem": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "path": { "type": "string" },
+        "mode": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["key", "path"],
+      "additionalProperties": false
+    },
+    "configMapSpec": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "nameOverride": { "type": "string" },
+        "labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "binaryData": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "defaultMode": { "type": "integer", "minimum": 0 },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/configMapItem" }
+        }
+      },
+      "anyOf": [
+        { "required": ["data"] },
+        { "required": ["binaryData"] }
+      ],
+      "additionalProperties": false
+    },
+    "configMapMountRef": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "path": { "type": "string" },
+        "subPath": { "type": "string" },
+        "readOnly": { "type": "boolean", "default": true }
+      },
+      "required": ["name", "path"],
       "additionalProperties": false
     },
     "probe": {
@@ -246,6 +305,11 @@
         "envFrom": {
           "type": "array",
           "items": { "$ref": "#/definitions/envFromSource" },
+          "default": []
+        },
+        "configMounts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/configMapMountRef" },
           "default": []
         },
         "livenessProbe": { "$ref": "#/definitions/probe" },

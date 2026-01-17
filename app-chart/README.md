@@ -7,6 +7,7 @@ Reusable Helm chart for deploying one or more simple applications (Deployments +
 - Multi-app support: declare any number of workloads below `values.apps`
 - Batch workloads: declare CronJobs under `values.cronJobs` for lightweight scheduled tasks
 - Sensible defaults: ports, service exposure, and ingress fields auto-populate when omitted
+- Config data: declare shared ConfigMaps once and mount them into any workload
 - Namespace bootstrap: optionally create the release namespace from the chart
 - Plain Helm: no custom controllers or CRDs, so rendering works anywhere Helm 3 does
 - PVC management: define persistent volumes once and (optionally) back them up with a built-in Restic CronJob
@@ -44,6 +45,7 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 | Key                      | Type       | Description                                                                                        | Default |
 | ------------------------ | ---------- | -------------------------------------------------------------------------------------------------- | ------- |
 | `apps`                   | object map | Map of app name → configuration. Each entry renders a Deployment, Service, and optional Ingress.   | `{}`    |
+| `configMaps`             | object map | Shared ConfigMaps rendered once and mounted into workloads via `apps.<name>.configMounts`.         | `{}`    |
 | `cronJobs`               | object map | Map of CronJob name → configuration. Each entry renders a single-container CronJob.                | `{}`    |
 | `namespace.enabled`      | bool       | When `true`, renders `templates/namespace.yaml` so Helm creates the target namespace.              | `false` |
 | `persistentVolumeClaims` | object map | Map of PVC name → spec. Renders both `PersistentVolumeClaim` objects and optional backup CronJobs. | `{}`    |
@@ -58,10 +60,60 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 | `image.tag`        | string | Image tag; falls back to `latest` if omitted.                                                                             | `latest`                                               |
 | `args`             | array  | Optional array of arguments passed to the container. Each element is a string.                                             | `[]`                                                   |
 | `envFrom`          | array  | Array of Kubernetes `envFrom` entries (ConfigMapRefs, SecretRefs, etc.) copied verbatim into the Deployment.              | `[]`                                                   |
+| `configMounts`     | array  | Mount definitions referencing shared `configMaps`. Each entry sets a target path/`subPath`/`readOnly`.                 | `[]`                                                   |
 | `ports`            | array  | Port definitions exposed on the container; also drives Service ports.                                                     | `[{ name: "http", containerPort: 80, protocol: TCP }]` |
 | `service`          | object | App-wide Service defaults (e.g., `type: ClusterIP`). Per-port service overrides live under `ports[].service`.             | `{ type: ClusterIP }`                                  |
 | `ingress`          | object | Optional ingress declaration. If `ingress.enabled` and hosts exist, renders `templates/ingress.yaml`.                     | disabled                                               |
 | `livenessProbe`    | object | Optional container liveness probe. Currently supports `type: command` with a `command` array plus standard timing fields. | disabled                                               |
+
+### `configMaps.<name>` object
+
+Define shared ConfigMaps once and mount them into any workload via `apps.<name>.configMounts`. The map key becomes the default Kubernetes object name unless `nameOverride` is supplied.
+
+| Key            | Type   | Description                                                                                               | Default |
+| -------------- | ------ | --------------------------------------------------------------------------------------------------------- | ------- |
+| `enabled`      | bool   | Toggle without deleting the block.                                                                         | `true`  |
+| `nameOverride` | string | Optional explicit ConfigMap name. Falls back to the map key when omitted.                                 | unset   |
+| `labels`       | map    | Extra labels merged into metadata.                                                                         | `{}`    |
+| `annotations`  | map    | Extra annotations merged into metadata.                                                                    | `{}`    |
+| `data`         | map    | String key/value pairs copied to the ConfigMap `data` field.                                               | `{}`    |
+| `binaryData`   | map    | Base64-encoded blobs copied to `binaryData`. Required when `data` is empty.                                | `{}`    |
+| `defaultMode`  | int    | File mode used when the ConfigMap is projected as a volume (Kubernetes interprets it as octal).           | `420` (Kubernetes default) |
+| `items[]`      | array  | Optional key remapping for projected volumes. Each entry defines `key`, `path`, and optional `mode`.       | `[]`    |
+
+Example:
+
+```yaml
+configMaps:
+  shared-config:
+    data:
+      config.yaml: |
+        baseUrl: https://whoami.local
+        features:
+          onboarding: true
+apps:
+  whoami:
+    image:
+      repository: traefik/whoami
+    configMounts:
+      - name: shared-config
+        path: /etc/whoami
+        readOnly: true
+      - name: shared-config
+        path: /etc/whoami/config.yaml
+        subPath: config.yaml
+```
+
+### `configMounts[]` entries
+
+Each app's `configMounts` array declares where a shared ConfigMap should be attached inside the pod. The referenced `name` must exist under the chart-level `configMaps` map.
+
+| Key        | Type   | Description                                                                                 | Default |
+| ---------- | ------ | ------------------------------------------------------------------------------------------- | ------- |
+| `name`     | string | Required reference to `configMaps.<name>`.                                                   | —       |
+| `path`     | string | Required container path fed to `volumeMounts[].mountPath`.                                  | —       |
+| `subPath`  | string | Optional `subPath` when only one file from the ConfigMap should appear at `path`.          | unset   |
+| `readOnly` | bool   | Defaults to `true`; set `false` only when the container needs to write to the mount path. | `true`  |
 
 ### `cronJobs.<name>` object
 

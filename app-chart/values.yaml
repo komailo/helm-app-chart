@@ -37,6 +37,18 @@ clusterName: ""
 namespace:
   enabled: false
 
+# -- Map of ConfigMaps shared across apps. Each entry renders a ConfigMap manifest that apps may mount via `configMounts`.
+configMaps:
+  {}
+  # shared-config:
+  #   data:
+  #     config.yaml: |
+  #       baseUrl: https://my-app.example.com
+  #       logLevel: info
+  #   items:
+  #     - key: config.yaml
+  #       path: nested/config.yaml
+
 # -- Map of application workloads rendered as Deployments/Services/Ingresses.
 apps:
   {}
@@ -73,6 +85,13 @@ apps:
   #         valueFrom:
   #           fieldRef:
   #             fieldPath: metadata.name
+  #     configMounts:
+  #       - name: shared-config
+  #         path: /etc/app-config
+  #         readOnly: true
+  #       - name: shared-config
+  #         path: /etc/app-config/config.yaml
+  #         subPath: nested/config.yaml
   #     livenessProbe:
   #       enabled: true
   #       type: command

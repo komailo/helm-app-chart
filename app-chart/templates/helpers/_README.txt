@@ -5,8 +5,13 @@ Deployment helper snippets that keep `templates/deployment.yaml` small and compo
 - app-chart.deployment.env: renders `apps.<name>.env` entries, templating `value` strings via `tpl` and supporting `valueFrom` blocks.
 - app-chart.deployment.livenessProbe: emits optional liveness probes configured via `apps.<name>.livenessProbe`.
 - app-chart.deployment.readinessProbe: emits optional readiness probes configured via `apps.<name>.readinessProbe`.
-- app-chart.deployment.volumeMounts: renders container `volumeMounts` from `apps.<name>.volumes`.
-- app-chart.deployment.volumes: renders pod `volumes` that back the mounts with PVCs.
+- app-chart.deployment.volumeMounts: renders container `volumeMounts` from PVCs plus the app's `configMounts`.
+- app-chart.deployment.volumes: renders pod `volumes` for PVCs and shared ConfigMaps referenced via `configMounts`.
+
+ConfigMap helper snippets backing `templates/configmap.yaml`:
+
+- app-chart.configmap.fullName: builds deterministic ConfigMap names from `values.configMaps` entries (honoring `nameOverride`).
+- app-chart.configmap.volumeName: builds per-app volume names referencing shared ConfigMaps.
 
 PVC helper snippets for `templates/pvc.yaml` and other PVC consumers:
 

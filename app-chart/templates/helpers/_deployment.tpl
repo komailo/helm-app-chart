@@ -129,14 +129,54 @@ readinessProbe:
 
 {{/* Renders volumeMounts for containers */}}
 {{- define "app-chart.deployment.volumeMounts" -}}
-{{- $volumes := .volumes -}}
-{{- if $volumes -}}
+{{- $appName := .appName -}}
+{{- $volumes := .volumes | default (list) -}}
+{{- $configMounts := .configMounts | default (list) -}}
+{{- $configMaps := .configMaps | default (dict) -}}
+{{- $ctx := dict "mounts" (list) -}}
+{{- range $volumes }}
+  {{- $mount := dict "name" (required "volumes[].name is required" .name) "mountPath" (required "mountPath is required for volumeMounts" .mountPath) -}}
+  {{- if hasKey . "subPath" }}
+    {{- $_ := set $mount "subPath" .subPath }}
+  {{- end }}
+  {{- $_ := set $ctx "mounts" (append ($ctx.mounts) $mount) }}
+{{- end }}
+{{- range $mountIdx, $mount := $configMounts }}
+  {{- $configName := required (printf "apps.%s.configMounts[%d].name is required" $appName $mountIdx) $mount.name }}
+  {{- $configSpec := index $configMaps $configName }}
+  {{- if not $configSpec }}
+    {{- fail (printf "apps.%s.configMounts[%d].name %q not found under configMaps" $appName $mountIdx $configName) }}
+  {{- end }}
+  {{- $configEnabled := true }}
+  {{- if hasKey $configSpec "enabled" }}
+    {{- $configEnabled = $configSpec.enabled }}
+  {{- end }}
+  {{- if not $configEnabled }}
+    {{- fail (printf "apps.%s.configMounts[%d].name %q references a disabled configMaps entry" $appName $mountIdx $configName) }}
+  {{- end }}
+  {{- $volumeName := include "app-chart.configmap.volumeName" (dict "appName" $appName "name" $configName) }}
+  {{- $entry := dict "name" $volumeName "mountPath" (required (printf "apps.%s.configMounts[%d].path is required" $appName $mountIdx) $mount.path) -}}
+  {{- if hasKey $mount "subPath" }}
+    {{- $_ := set $entry "subPath" $mount.subPath }}
+  {{- end }}
+  {{- $readOnly := true }}
+  {{- if hasKey $mount "readOnly" }}
+    {{- $readOnly = $mount.readOnly }}
+  {{- end }}
+  {{- $_ := set $entry "readOnly" $readOnly }}
+  {{- $_ := set $ctx "mounts" (append ($ctx.mounts) $entry) }}
+{{- end }}
+{{- $mounts := $ctx.mounts -}}
+{{- if gt (len $mounts) 0 }}
 volumeMounts:
-{{- range $volume := $volumes }}
-  - name: {{ $volume.name }}
-    mountPath: {{ $volume.mountPath | required "mountPath is required for volumeMounts" }}
-    {{- if $volume.subPath }}
-    subPath: {{ $volume.subPath }}
+{{- range $mount := $mounts }}
+  - name: {{ $mount.name }}
+    mountPath: {{ $mount.mountPath }}
+    {{- with $mount.subPath }}
+    subPath: {{ . }}
+    {{- end }}
+    {{- if hasKey $mount "readOnly" }}
+    readOnly: {{ $mount.readOnly }}
     {{- end }}
 {{- end }}
 {{- end -}}
@@ -144,8 +184,10 @@ volumeMounts:
 
 {{/* Renders pod volumes */}}
 {{- define "app-chart.deployment.volumes" -}}
-{{- $volumes := .volumes -}}
-{{- if $volumes -}}
+{{- $appName := .appName -}}
+{{- $volumes := .volumes | default (list) -}}
+{{- $configMounts := .configMounts | default (list) -}}
+{{- if or (gt (len $volumes) 0) (gt (len $configMounts) 0) }}
 volumes:
 {{- $seen := dict }}
 {{- range $idx, $volume := $volumes }}
@@ -156,6 +198,43 @@ volumes:
       claimName: {{ $volume.persistentVolumeClaim.claimName }}
   {{- $_ := set $seen $volumeName true }}
   {{- end }}
+{{- end }}
+{{- $configMaps := .configMaps | default (dict) -}}
+{{- range $mountIdx, $mount := $configMounts }}
+  {{- $configName := required (printf "apps.%s.configMounts[%d].name is required" $appName $mountIdx) $mount.name }}
+  {{- $configSpec := index $configMaps $configName }}
+  {{- if not $configSpec }}
+    {{- fail (printf "apps.%s.configMounts[%d].name %q not found under configMaps" $appName $mountIdx $configName) }}
+  {{- end }}
+  {{- $configEnabled := true }}
+  {{- if hasKey $configSpec "enabled" }}
+    {{- $configEnabled = $configSpec.enabled }}
+  {{- end }}
+  {{- if not $configEnabled }}
+    {{- fail (printf "apps.%s.configMounts[%d].name %q references a disabled configMaps entry" $appName $mountIdx $configName) }}
+  {{- end }}
+  {{- $volumeName := include "app-chart.configmap.volumeName" (dict "appName" $appName "name" $configName) }}
+  {{- if hasKey $seen $volumeName }}
+    {{- continue }}
+  {{- end }}
+  {{- $configMetaName := include "app-chart.configmap.fullName" (dict "name" $configName "spec" $configSpec) }}
+  - name: {{ $volumeName }}
+    configMap:
+      name: {{ $configMetaName }}
+      {{- with $configSpec.defaultMode }}
+      defaultMode: {{ . }}
+      {{- end }}
+      {{- if $configSpec.items }}
+      items:
+        {{- range $itemIdx, $item := $configSpec.items }}
+        - key: {{ required (printf "configMaps.%s.items[%d].key is required" $configName $itemIdx) $item.key }}
+          path: {{ required (printf "configMaps.%s.items[%d].path is required" $configName $itemIdx) $item.path }}
+          {{- with $item.mode }}
+          mode: {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+  {{- $_ := set $seen $volumeName true }}
 {{- end }}
 {{- end -}}
 {{- end }}
