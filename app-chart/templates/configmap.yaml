@@ -1,0 +1,39 @@
+{{- range $name, $configMap := .Values.configMaps }}
+{{- $enabled := true }}
+{{- if hasKey $configMap "enabled" }}
+  {{- $enabled = $configMap.enabled }}
+{{- end }}
+{{- if not $enabled }}
+  {{- continue }}
+{{- end }}
+{{- $data := $configMap.data | default (dict) -}}
+{{- $binaryData := $configMap.binaryData | default (dict) -}}
+{{- if and (eq (len $data) 0) (eq (len $binaryData) 0) }}
+  {{- fail (printf "configMaps.%s requires data or binaryData" $name) }}
+{{- end }}
+{{- $configMapName := include "app-chart.configmap.fullName" (dict "name" $name "spec" $configMap) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $configMapName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+{{- with $configMap.labels }}
+{{ toYaml . | nindent 4 }}
+{{- end }}
+{{- with $configMap.annotations }}
+  annotations:
+{{ toYaml . | nindent 4 }}
+{{- end }}
+{{- if gt (len $data) 0 }}
+data:
+{{ toYaml $data | nindent 2 }}
+{{- end }}
+{{- if gt (len $binaryData) 0 }}
+binaryData:
+{{ toYaml $binaryData | nindent 2 }}
+{{- end }}
+{{- end }}

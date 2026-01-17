@@ -33,8 +33,8 @@ spec:
       {{- with (include "app-chart.deployment.env" (dict "env" $app.env "context" $ "appName" $appName)) }}{{ . | nindent 10 }}{{- end }}
       {{- with (include "app-chart.deployment.livenessProbe" (dict "livenessProbe" $app.livenessProbe "appName" $appName)) }}{{ . | nindent 10 }}{{- end }}
       {{- with (include "app-chart.deployment.readinessProbe" (dict "readinessProbe" $app.readinessProbe "appName" $appName)) }}{{ . | nindent 10 }}{{- end }}
-      {{- with (include "app-chart.deployment.volumeMounts" (dict "volumes" $app.volumes)) }}{{ . | nindent 10 }}{{- end }}
-    {{- with (include "app-chart.deployment.volumes" (dict "volumes" $app.volumes)) }}{{ . | nindent 6 }}{{- end }}
+      {{- with (include "app-chart.deployment.volumeMounts" (dict "volumes" $app.volumes "configMounts" $app.configMounts "configMaps" $.Values.configMaps "appName" $appName)) }}{{ . | nindent 10 }}{{- end }}
+    {{- with (include "app-chart.deployment.volumes" (dict "volumes" $app.volumes "configMounts" $app.configMounts "configMaps" $.Values.configMaps "appName" $appName)) }}{{ . | nindent 6 }}{{- end }}
 
 {{- end }}
 {{- end }}
