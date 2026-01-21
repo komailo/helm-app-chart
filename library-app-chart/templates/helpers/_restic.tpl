@@ -5,7 +5,7 @@ Renders a Restic maintenance CronJob with shared defaults so sibling charts can 
 {{- $root := required "restic.cronJob requires the root context" .root -}}
 {{- $job := required "restic.cronJob requires a job map" .job -}}
 {{- $name := required "restic.cronJob requires a job name" $job.name -}}
-{{- $schedule := required (printf "restic.cronJob %s requires a schedule" $name) $job.schedule -}}
+{{- $schedule := default "" $job.schedule -}}
 {{- $script := required (printf "restic.cronJob %s requires a script" $name) $job.script -}}
 {{- $cachePVCName := required (printf "restic.cronJob %s requires cachePVCName" $name) $root.Values.resticBackup.cachePVC.name -}}
 {{- $secretName := default "restic-backup" $job.envSecretName -}}
@@ -17,6 +17,11 @@ Renders a Restic maintenance CronJob with shared defaults so sibling charts can 
 {{- $ttlSeconds := $job.ttlSecondsAfterFinished | default 172800 -}}
 {{- $backoffLimit := $job.backoffLimit | default 4 -}}
 {{- $restartPolicy := default "OnFailure" $job.restartPolicy -}}
+{{- $suspend := default false $job.suspend -}}
+{{- if not $schedule -}}
+  {{- $schedule = "0 0 1 1 */30" -}}
+  {{- $suspend = true -}}
+{{- end -}}
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -25,6 +30,7 @@ metadata:
   namespace: {{ $root.Release.Namespace }}
 spec:
   schedule: {{ $schedule | quote }}
+  suspend: {{ $suspend }}
   successfulJobsHistoryLimit: {{ $successfulHistory }}
   failedJobsHistoryLimit: {{ $failedHistory }}
   concurrencyPolicy: {{ $concurrencyPolicy }}
