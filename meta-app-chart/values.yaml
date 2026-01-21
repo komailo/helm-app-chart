@@ -36,3 +36,15 @@ resticBackup:
       restic unlock
       echo "[restic check] Starting check operation"
       restic check
+  initJob:
+    image: *resticImage
+    name: restic-init
+    schedule: ""
+    script: |
+      echo "[restic init] Starting init operation"
+      if ! restic snapshots > /dev/null 2>&1; then
+        echo "[backup] Repo not found, initializing..."
+        restic init
+      else
+        echo "[backup] Repo found, skipping init."
+      fi

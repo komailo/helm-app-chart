@@ -25,6 +25,10 @@ data:
 {{ $checkJob := default (dict) $restic.checkJob -}}
 {{ include "library-app-chart.restic.cronJob" (dict "root" . "job" $checkJob) }}
 
+# Restic Init Job
+{{ $initJob := default (dict) $restic.initJob -}}
+{{ include "library-app-chart.restic.cronJob" (dict "root" . "job" $initJob) }}
+
 # External Secrets Manager SubPathSecret for Restic
 {{- /* Expose only the External Secrets inputs we need for restic backups */}}
 {{- $clusterName := default .Release.Namespace .Values.clusterName }}
