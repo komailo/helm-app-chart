@@ -76,12 +76,6 @@ spec:
 
                   export RESTIC_CACHE_DIR=/cache/restic
 
-                  echo "[backup] Checking/initializing restic repo..."
-                  if ! restic snapshots > /dev/null 2>&1; then
-                    echo "[backup] Repo not found, initializing..."
-                    restic init
-                  fi
-
                   echo "[backup] Running backup of /data ..."
                   restic backup . \
                     --skip-if-unchanged \
