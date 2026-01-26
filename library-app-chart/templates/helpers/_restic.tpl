@@ -68,6 +68,7 @@ spec:
                   export RESTIC_REPOSITORY=${RESTIC_repository}
                   export AWS_ACCESS_KEY_ID=${RESTIC_aws_access_key_id}
                   export AWS_SECRET_ACCESS_KEY=${RESTIC_aws_secret_access_key}
+                  export AWS_DEFAULT_REGION=${RESTIC_aws_default_region}
                   export RESTIC_CACHE_DIR=/cache/restic
 
 {{ $script | nindent 18 }}
