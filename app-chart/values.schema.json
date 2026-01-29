@@ -40,6 +40,11 @@
               "description": "Fallback Cron expression for PVC backup jobs.",
               "default": "*/30 * * * *"
             },
+            "forgetSchedule": {
+              "type": "string",
+              "description": "Cron expression for the retention (restic forget) job when unspecified by a PVC.",
+              "default": "@daily"
+            },
             "pruningPolicy": {
               "type": "object",
               "properties": {
@@ -364,6 +369,7 @@
       "properties": {
         "enabled": { "type": "boolean" },
         "schedule": { "type": "string" },
+        "forgetSchedule": { "type": "string" },
         "pruningPolicy": {
           "type": "object",
           "properties": {
