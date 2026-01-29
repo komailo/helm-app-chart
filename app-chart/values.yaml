@@ -13,6 +13,8 @@ defaults:
   backup:
     # -- Default Cron expression for PVC backup jobs when a PVC omits `backup.schedule`.
     schedule: "*/30 * * * *"
+    # -- Cron expression for the retention (restic forget) job when a PVC omits `backup.forgetSchedule`.
+    forgetSchedule: "@daily"
 
     # 📦 Total snapshots (approx.)
     # 48 hourly

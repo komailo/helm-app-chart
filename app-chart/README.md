@@ -239,11 +239,15 @@ Every entry under `persistentVolumeClaims` renders a PVC from `templates/pvc.yam
 | ------------------ | ------ | ---------------------------------------------------------------------------------------------------------- | ------------ |
 | `storageClassName` | string | Required. Class the PVC should bind to.                                                                    | **required** |
 | `storage`          | string | Required. Capacity request (for example `10Gi`).                                                           | **required** |
-| `backup.enabled`   | bool   | When `true`, also renders `templates/pvc-backup.yaml`, which provisions a Restic CronJob + Secret per PVC. | `false`      |
+| `backup.enabled`   | bool   | When `true`, also renders `templates/pvc-backup.yaml`, which provisions Restic CronJobs + Secret per PVC.  | `false`      |
+| `backup.schedule`  | string | Optional Cron expression for the snapshot job. Falls back to `defaults.backup.schedule`.                   | `*/30 * * * *` |
+| `backup.forgetSchedule` | string | Optional Cron expression for the retention job. Falls back to `defaults.backup.forgetSchedule`.       | `@daily`     |
+| `backup.pruningPolicy` | object | Optional overrides to the Retention policy used by the forget job.                                      | see values   |
 
 When backups are enabled:
 
-- The CronJob runs hourly using `restic/restic:latest`, backs up `/data` (the mounted PVC), and retains 7 daily, 4 weekly, and 3 monthly restore points.
+- One CronJob handles snapshots (default every 30 minutes) using `restic/restic`, backing up `/data` (the mounted PVC).
+- A second CronJob enforces retention once per day with `restic forget` so that expensive Backblaze transactions only occur daily.
 - Secrets referenced inside the backup template rely on external secret injection (see the `<path:...>` placeholders). Update those secret references to match your vault or secret store if needed.
 
 Example:

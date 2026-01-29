@@ -3,6 +3,7 @@
 {{- $defaultBackup := default (dict) $defaults.backup }}
 {{- $defaultPruning := default (dict) $defaultBackup.pruningPolicy }}
 {{- $defaultSchedule := default "@hourly" $defaultBackup.schedule }}
+{{- $defaultForgetSchedule := default "@daily" $defaultBackup.forgetSchedule }}
 {{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
 {{- if and $pvc.backup $pvc.backup.enabled }}
 {{- $pruning := default (dict) $pvc.backup.pruningPolicy }}
@@ -12,6 +13,7 @@
 {{- $keepWeekly := default $defaultPruning.keepWeekly $pruning.keepWeekly }}
 {{- $keepMonthly := default $defaultPruning.keepMonthly $pruning.keepMonthly }}
 {{- $keepYearly := default $defaultPruning.keepYearly $pruning.keepYearly }}
+{{- $forgetSchedule := default $defaultForgetSchedule $pvc.backup.forgetSchedule }}
 {{- $_ := set $backupTracker "enabled" true }}
 ---
 apiVersion: v1
@@ -85,11 +87,66 @@ spec:
                     --host "$RESTIC_HOSTNAME" \
                     --tag="pvc={{ $pvcName }}" \
                     --tag="namespace={{ $.Release.Namespace }}"
-                  
+
+                  echo "[backup] Done."
+
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: {{ $pvcName }}
+            - name: restic-cache
+              persistentVolumeClaim:
+                claimName: {{ printf "%s-restic-cache" $pvcName }}
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restic-backup-{{ $pvcName }}-forget
+  namespace: {{ $.Release.Namespace }}
+spec:
+  schedule: "{{ $forgetSchedule }}"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 172800 # 2 days
+      backoffLimit: 4
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: restic
+              image: {{ printf "%s:%s" $.Values.restic.image.repository $.Values.restic.image.tag }}
+              envFrom:
+                - secretRef:
+                    name: restic-backup
+                  prefix: "RESTIC_"
+                - configMapRef:
+                    name: restic-backup-{{ $pvcName }}
+                  prefix: "RESTIC_"
+              volumeMounts:
+                - name: restic-cache
+                  mountPath: /cache/restic
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+
+                  export RESTIC_PASSWORD=${RESTIC_password}
+                  export RESTIC_REPOSITORY=${RESTIC_repository}
+                  export AWS_ACCESS_KEY_ID=${RESTIC_aws_access_key_id}
+                  export AWS_SECRET_ACCESS_KEY=${RESTIC_aws_secret_access_key}
+                  export AWS_DEFAULT_REGION=${RESTIC_aws_default_region}
+
+                  export RESTIC_CACHE_DIR=/cache/restic
+
                   echo "[restic unlock] Starting stale lock removal operation"
                   restic unlock
 
-                  echo "[backup] Applying retention policy + prune..."
+                  echo "[retention] Applying retention policy..."
                   restic forget \
                     --keep-last "{{ $keepLast }}" \
                     --keep-hourly "{{ $keepHourly }}" \
@@ -101,12 +158,9 @@ spec:
                     --tag="pvc={{ $pvcName }}" \
                     --tag="namespace={{ $.Release.Namespace }}"
 
-                  echo "[backup] Done."
+                  echo "[retention] Done."
 
           volumes:
-            - name: data
-              persistentVolumeClaim:
-                claimName: {{ $pvcName }}
             - name: restic-cache
               persistentVolumeClaim:
                 claimName: {{ printf "%s-restic-cache" $pvcName }}
