@@ -11,3 +11,14 @@
 {{- $configName := required "configMap reference name is required" .name -}}
 {{- printf "%s-%s" $appName $configName | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+{{- define "app-chart.configmap.renderData" -}}
+{{- $data := . | default (dict) -}}
+{{- range $key, $value := $data }}
+  {{- if or (kindIs "map" $value) (kindIs "slice" $value) }}
+{{ printf "%s: |-\n%s" $key (toYaml $value | indent 2) }}
+  {{- else }}
+{{ toYaml (dict $key $value) }}
+  {{- end }}
+{{- end -}}
+{{- end -}}
