@@ -64,6 +64,25 @@ livenessProbe:
     {{- range $cmd := $command }}
       - {{ $cmd | quote }}
     {{- end }}
+  {{- else if eq $probeType "http" }}
+  httpGet:
+    {{- $port := required (printf "apps.%s.livenessProbe.port is required when type=http" $appName) $probe.port }}
+    {{- $path := default "/" $probe.path }}
+    path: {{ $path | quote }}
+    port: {{ $port }}
+    {{- with $probe.host }}
+    host: {{ . | quote }}
+    {{- end }}
+    {{- with $probe.scheme }}
+    scheme: {{ . | quote }}
+    {{- end }}
+    {{- with $probe.httpHeaders }}
+    httpHeaders:
+    {{- range $idx, $header := . }}
+      - name: {{ required (printf "apps.%s.livenessProbe.httpHeaders[%d].name is required" $appName $idx) $header.name | quote }}
+        value: {{ required (printf "apps.%s.livenessProbe.httpHeaders[%d].value is required" $appName $idx) $header.value | quote }}
+    {{- end }}
+    {{- end }}
   {{- else }}
   {{- fail (printf "apps.%s.livenessProbe.type %s is not supported" $appName $probeType) }}
   {{- end }}
@@ -104,6 +123,25 @@ readinessProbe:
     {{- $command := required (printf "apps.%s.readinessProbe.command is required when type=command" $appName) $probe.command }}
     {{- range $cmd := $command }}
       - {{ $cmd | quote }}
+    {{- end }}
+  {{- else if eq $probeType "http" }}
+  httpGet:
+    {{- $port := required (printf "apps.%s.readinessProbe.port is required when type=http" $appName) $probe.port }}
+    {{- $path := default "/" $probe.path }}
+    path: {{ $path | quote }}
+    port: {{ $port }}
+    {{- with $probe.host }}
+    host: {{ . | quote }}
+    {{- end }}
+    {{- with $probe.scheme }}
+    scheme: {{ . | quote }}
+    {{- end }}
+    {{- with $probe.httpHeaders }}
+    httpHeaders:
+    {{- range $idx, $header := . }}
+      - name: {{ required (printf "apps.%s.readinessProbe.httpHeaders[%d].name is required" $appName $idx) $header.name | quote }}
+        value: {{ required (printf "apps.%s.readinessProbe.httpHeaders[%d].value is required" $appName $idx) $header.value | quote }}
+    {{- end }}
     {{- end }}
   {{- else }}
   {{- fail (printf "apps.%s.readinessProbe.type %s is not supported" $appName $probeType) }}

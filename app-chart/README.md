@@ -64,7 +64,8 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 | `ports`            | array  | Port definitions exposed on the container; also drives Service ports.                                                     | `[{ name: "http", containerPort: 80, protocol: TCP }]` |
 | `service`          | object | App-wide Service defaults (e.g., `type: ClusterIP`). Per-port service overrides live under `ports[].service`.             | `{ type: ClusterIP }`                                  |
 | `ingress`          | object | Optional ingress declaration. If `ingress.enabled` and hosts exist, renders `templates/ingress.yaml`.                     | disabled                                               |
-| `livenessProbe`    | object | Optional container liveness probe. Currently supports `type: command` with a `command` array plus standard timing fields. | disabled                                               |
+| `livenessProbe`    | object | Optional container liveness probe. Supports `type: command` (exec) or `type: http` (HTTP GET) alongside standard timing fields. | disabled                                               |
+| `readinessProbe`   | object | Optional readiness probe using the same schema (`type: command` or `type: http`).                                           | disabled                                               |
 
 ### `configMaps.<name>` object
 

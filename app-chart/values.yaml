@@ -96,10 +96,14 @@ apps:
   #         subPath: nested/config.yaml
   #     livenessProbe:
   #       enabled: true
-  #       type: command
-  #       command:
-  #         - cat
-  #         - /tmp/healthy
+  #       type: http
+  #       port: http
+  #       path: /healthz
+  #       host: 127.0.0.1
+  #       scheme: HTTP
+  #       httpHeaders:
+  #         - name: X-Forwarded-Proto
+  #           value: https
   #       initialDelaySeconds: 5
   #       periodSeconds: 10
   #       timeoutSeconds: 1
