@@ -30,7 +30,7 @@ metadata:
 {{- end }}
 {{- if gt (len $data) 0 }}
 data:
-{{ toYaml $data | nindent 2 }}
+{{ include "app-chart.configmap.renderData" $data | nindent 2 }}
 {{- end }}
 {{- if gt (len $binaryData) 0 }}
 binaryData:

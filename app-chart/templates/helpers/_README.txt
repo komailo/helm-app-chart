@@ -12,6 +12,7 @@ ConfigMap helper snippets backing `templates/configmap.yaml`:
 
 - app-chart.configmap.fullName: builds deterministic ConfigMap names from `values.configMaps` entries (honoring `nameOverride`).
 - app-chart.configmap.volumeName: builds per-app volume names referencing shared ConfigMaps.
+- app-chart.configmap.renderData: stringifies map or list `data` entries so ConfigMaps always receive string values.
 
 PVC helper snippets for `templates/pvc.yaml` and other PVC consumers:
 
