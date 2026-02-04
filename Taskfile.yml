@@ -40,7 +40,7 @@ tasks:
             mkdir -p "$outDir"
             outFile="$outDir/$(basename "$values")"
             echo "==> helm template $release using $values -> $outFile"
-            helm template "$release" "{{.CHART_DIR}}" --namespace "$release" --values "$values" > "$outFile"
+            helm template "$release" "{{.CHART_DIR}}" --namespace "$release" --values "$values" --debug > "$outFile"
           done
           if [ "$ran_any" = false ]; then
             echo "(skipping $release - no .yaml files)" >&2
