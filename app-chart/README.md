@@ -66,6 +66,7 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 | `ingress`          | object | Optional ingress declaration. If `ingress.enabled` and hosts exist, renders `templates/ingress.yaml`.                     | disabled                                               |
 | `livenessProbe`    | object | Optional container liveness probe. Supports `type: command` (exec) or `type: http` (HTTP GET) alongside standard timing fields. | disabled                                               |
 | `readinessProbe`   | object | Optional readiness probe using the same schema (`type: command` or `type: http`).                                           | disabled                                               |
+| `sidecars`         | array  | Optional list of sidecar containers to run in the same Deployment. Supports `name`, `image`, `args`, `env`, `envFrom`, `ports`, `livenessProbe`, `readinessProbe`, and `volumeMounts`. | `[]` |
 
 ### `configMaps.<name>` object
 
@@ -228,9 +229,32 @@ apps:
       tls:
         - hosts:
             - whoami.local
+
+### Sidecar Example
+
+```yaml
+apps:
+  nanobot:
+    image:
+      repository: ghcr.io/komailo/docker/nanobot/general-purpose
+      tag: latest
+    args: ["gateway", "--config", "/opt/nanobot/config.json"]
+    volumes:
+      - name: nanobot-data
+        mountPath: /home/nanobot/.nanobot
+        persistentVolumeClaim:
+          claimName: nanobot-pvc
+    sidecars:
+      - name: whatsapp-bridge
+        image: ghcr.io/komailo/docker/nanobot/general-purpose:latest
+        args: ["channels", "login", "whatsapp"]
+        volumeMounts:
+          - name: nanobot-data
+            mountPath: /home/nanobot/.nanobot
 ```
 
 Copy the example block, rename the key (`whoami` → new service), and adjust ports/ingress requirements to onboard additional applications.
+
 
 ### `persistentVolumeClaims.<name>` objects
 
