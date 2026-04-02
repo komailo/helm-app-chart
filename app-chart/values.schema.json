@@ -139,6 +139,50 @@
       "type": "object",
       "additionalProperties": true
     },
+    "volumeMount": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "mountPath": { "type": "string" },
+        "subPath": {
+          "type": "string",
+          "description": "Optional subPath used when mounting the volume."
+        }
+      },
+      "required": ["name", "mountPath"],
+      "additionalProperties": false
+    },
+    "sidecarSpec": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "image": { "type": "string" },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "env": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/envVar" }
+        },
+        "envFrom": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/envFromSource" }
+        },
+        "livenessProbe": { "$ref": "#/definitions/probe" },
+        "readinessProbe": { "$ref": "#/definitions/probe" },
+        "ports": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/portSpec" }
+        },
+        "volumeMounts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/volumeMount" }
+        }
+      },
+      "required": ["name", "image"],
+      "additionalProperties": false
+    },
     "volumeSpec": {
       "type": "object",
       "properties": {
@@ -349,6 +393,11 @@
         "volumes": {
           "type": "array",
           "items": { "$ref": "#/definitions/volumeSpec" },
+          "default": []
+        },
+        "sidecars": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/sidecarSpec" },
           "default": []
         },
         "ingress": {
