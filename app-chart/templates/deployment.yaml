@@ -37,7 +37,7 @@ spec:
 {{- if $app.sidecars }}
 {{- range $sidecar := $app.sidecars }}
         - name: {{ $sidecar.name }}
-          image: {{ $sidecar.image | quote }}
+          image: "{{ $sidecar.image.repository }}:{{ $sidecar.image.tag | default "latest" }}"
           {{- with $sidecar.args }}
           args:
 {{ toYaml . | nindent 12 }}
