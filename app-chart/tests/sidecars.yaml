@@ -12,7 +12,9 @@ apps:
           claimName: nanobot-pvc
     sidecars:
       - name: whatsapp-bridge
-        image: ghcr.io/komailo/docker/nanobot/general-purpose:latest
+        image:
+          repository: ghcr.io/komailo/docker/nanobot/general-purpose
+          tag: latest
         args: ["channels", "login", "whatsapp"]
         volumeMounts:
           - name: nanobot-data
