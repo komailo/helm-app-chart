@@ -1,4 +1,50 @@
+{{/* Renders a container spec (main or sidecar) */}}
+{{- define "app-chart.deployment.container" -}}
+{{- $container := .container -}}
+{{- $context := .context -}}
+{{- $appName := .appName -}}
+{{- $name := .name -}}
+- name: {{ $name }}
+  image: "{{ $container.image.repository }}:{{ $container.image.tag | default "latest" }}"
+  {{- with $container.image.pullPolicy }}
+  imagePullPolicy: {{ . }}
+  {{- end }}
+  {{- with $container.command }}
+  command:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $container.args }}
+  args:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $container.workingDir }}
+  workingDir: {{ . }}
+  {{- end }}
+  {{- with $container.securityContext }}
+  securityContext:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with (include "app-chart.deployment.containerPorts" (dict "ports" $container.ports "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
+  {{- with (include "app-chart.deployment.envFrom" (dict "envFrom" $container.envFrom)) }}{{ . | nindent 2 }}{{- end }}
+  {{- with (include "app-chart.deployment.env" (dict "env" $container.env "context" $context "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
+  {{- with (include "app-chart.deployment.resources" (dict "resources" $container.resources)) }}{{ . | nindent 2 }}{{- end }}
+  {{- with (include "app-chart.deployment.livenessProbe" (dict "livenessProbe" $container.livenessProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
+  {{- with (include "app-chart.deployment.readinessProbe" (dict "readinessProbe" $container.readinessProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
+  {{- /* Unify volume mounts: main container uses .volumes, sidecars use .volumeMounts */ -}}
+  {{- $mounts := $container.volumeMounts | default $container.volumes -}}
+  {{- with (include "app-chart.deployment.volumeMounts" (dict "volumes" $mounts "configMounts" $container.configMounts "configMaps" $context.Values.configMaps "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
+{{- end }}
+
+{{/* Renders container resources */}}
+{{- define "app-chart.deployment.resources" -}}
+{{- if .resources -}}
+resources:
+{{- toYaml .resources | nindent 2 -}}
+{{- end -}}
+{{- end }}
+
 {{/* Renders container ports for a single app */}}
+
 {{- define "app-chart.deployment.containerPorts" -}}
 {{- $ports := .ports -}}
 {{- $appName := .appName -}}
