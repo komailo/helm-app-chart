@@ -1,0 +1,85 @@
+{{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
+{{- if and $pvc.backup $pvc.backup.enabled }}
+{{- $restore := default (dict) $pvc.restore }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restic-restore-{{ $pvcName }}
+  namespace: {{ $.Release.Namespace }}
+  annotations:
+    description: "Manual restore job for PVC {{ $pvcName }}. Run manually with: kubectl create job --from=cronjob/restic-restore-{{ $pvcName }} manual-restore-{{ $pvcName }}"
+spec:
+  schedule: "0 0 1 1 *" # Placeholder, job is suspended
+  suspend: true
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 0 # Usually want to fail fast and investigate during manual restore
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: restic
+              image: {{ printf "%s:%s" $.Values.restic.image.repository $.Values.restic.image.tag }}
+              env:
+                - name: RESTORE_SNAPSHOT
+                  value: {{ default "latest" $restore.snapshot | quote }}
+                - name: CLEAN_BEFORE_RESTORE
+                  value: {{ default "false" (toString $restore.cleanBeforeRestore) | quote }}
+              envFrom:
+                - secretRef:
+                    name: restic-backup
+                  prefix: "RESTIC_"
+                - configMapRef:
+                    name: restic-backup-{{ $pvcName }}
+                  prefix: "RESTIC_"
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                - name: restic-cache
+                  mountPath: /cache/restic
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+
+                  export RESTIC_PASSWORD=${RESTIC_password}
+                  export RESTIC_REPOSITORY=${RESTIC_repository}
+                  export AWS_ACCESS_KEY_ID=${RESTIC_aws_access_key_id}
+                  export AWS_SECRET_ACCESS_KEY=${RESTIC_aws_secret_access_key}
+                  export AWS_DEFAULT_REGION=${RESTIC_aws_default_region}
+                  export RESTIC_CACHE_DIR=/cache/restic
+
+                  RESTORE_DIR="/data/.restore-${RESTORE_SNAPSHOT}"
+                  echo "[restore] Target PVC: {{ $pvcName }}"
+                  echo "[restore] Snapshot: ${RESTORE_SNAPSHOT}"
+                  echo "[restore] Restore Directory: ${RESTORE_DIR}"
+
+                  echo "[restore] Preparing and cleaning restore directory..."
+                  mkdir -p "${RESTORE_DIR}"
+                  # Safely clean the subdirectory
+                  find "${RESTORE_DIR}" -mindepth 1 -delete
+
+                  echo "[restore] Running restic restore..."
+                  restic restore "${RESTORE_SNAPSHOT}" \
+                    --target "${RESTORE_DIR}" \
+                    --host "$RESTIC_HOSTNAME" \
+                    --tag="pvc={{ $pvcName }}" \
+                    --tag="namespace={{ $.Release.Namespace }}"
+
+                  echo "[restore] Done. Data is available in ${RESTORE_DIR}"
+
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: {{ $pvcName }}
+            - name: restic-cache
+              persistentVolumeClaim:
+                claimName: {{ printf "%s-restic-cache" $pvcName }}
+
+{{- end }}
+{{- end }}

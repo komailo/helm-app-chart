@@ -460,7 +460,18 @@
       "properties": {
         "storageClassName": { "type": "string" },
         "storage": { "type": "string" },
-        "backup": { "$ref": "#/definitions/backupPolicy" }
+        "backup": { "$ref": "#/definitions/backupPolicy" },
+        "restore": {
+          "type": "object",
+          "properties": {
+            "snapshot": {
+              "type": "string",
+              "description": "The Restic snapshot ID to restore. Defaults to 'latest'.",
+              "default": "latest"
+            }
+          },
+          "additionalProperties": false
+        }
       },
       "required": ["storageClassName", "storage"],
       "additionalProperties": false
