@@ -460,6 +460,20 @@
       "properties": {
         "storageClassName": { "type": "string" },
         "storage": { "type": "string" },
+        "hostPath": {
+          "type": "string",
+          "description": "Optional local path on the host to mount as a PersistentVolume."
+        },
+        "accessMode": {
+          "type": "string",
+          "description": "Access mode for the PV and PVC. Defaults to ReadWriteOnce.",
+          "default": "ReadWriteOnce"
+        },
+        "reclaimPolicy": {
+          "type": "string",
+          "description": "Reclaim policy for the PV. Defaults to Retain.",
+          "default": "Retain"
+        },
         "backup": { "$ref": "#/definitions/backupPolicy" },
         "restore": {
           "type": "object",
@@ -473,7 +487,7 @@
           "additionalProperties": false
         }
       },
-      "required": ["storageClassName", "storage"],
+      "required": ["storage"],
       "additionalProperties": false
     },
     "cronJobContainer": {
