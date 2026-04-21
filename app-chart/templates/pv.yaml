@@ -1,0 +1,14 @@
+{{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
+{{- if $pvc.hostPath }}
+{{- $pvName := printf "%s-%s" $.Release.Namespace $pvcName }}
+{{- $pvLabels := dict "app-chart-pv" $pvName }}
+{{- $pvCtx := dict "hostPath" $pvc.hostPath "storage" $pvc.storage "storageClassName" ($pvc.storageClassName | default "manual") "labels" $pvLabels "reclaimPolicy" ($pvc.reclaimPolicy | default "Retain") "accessModes" $pvc.accessModes }}
+{{ include "library-app-chart.pv.volume" (dict "name" $pvName "pv" $pvCtx) }}
+---
+{{- end }}
+{{- end }}
+
+{{- range $pvName, $pv := .Values.persistentVolumes }}
+{{ include "library-app-chart.pv.volume" (dict "name" $pvName "pv" $pv) }}
+---
+{{- end }}

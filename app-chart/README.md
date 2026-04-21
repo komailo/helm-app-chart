@@ -260,22 +260,34 @@ Copy the example block, rename the key (`whoami` → new service), and adjust po
 
 Every entry under `persistentVolumeClaims` renders a PVC from `templates/pvc.yaml`. Add a matching `volumes[].persistentVolumeClaim.claimName` inside the consuming app to mount it.
 
-| Key                | Type   | Description                                                                                                | Default      |
-| ------------------ | ------ | ---------------------------------------------------------------------------------------------------------- | ------------ |
-| `storageClassName` | string | Required. Class the PVC should bind to.                                                                    | **required** |
-| `storage`          | string | Required. Capacity request (for example `10Gi`).                                                           | **required** |
-| `backup.enabled`   | bool   | When `true`, also renders `templates/pvc-backup.yaml`, which provisions Restic CronJobs + Secret per PVC.  | `false`      |
-| `backup.schedule`  | string | Optional Cron expression for the snapshot job. Falls back to `defaults.backup.schedule`.                   | `*/30 * * * *` |
-| `backup.forgetSchedule` | string | Optional Cron expression for the retention job. Falls back to `defaults.backup.forgetSchedule`.       | `@daily`     |
-| `backup.pruningPolicy` | object | Optional overrides to the Retention policy used by the forget job.                                      | see values   |
+**Unified Static Provisioning:** If you provide a `hostPath`, the chart **automatically generates** a matching `PersistentVolume` for you and ensures they are bound together. This is the simplest way to mount local folders.
 
-When backups are enabled:
+| Key                | Type   | Description                                                                                                                                                                    | Default        |
+| ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- |
+| `storageClassName` | string | Required. Class the PVC should bind to.                                                                                                                                        | **required**   |
+| `storage`          | string | Required. Capacity request (for example `10Gi`).                                                                                                                               | **required**   |
+| `hostPath`         | string | Optional. If provided, the chart auto-generates a `PersistentVolume` pointing to this host folder.                                                                             | unset          |
+| `reclaimPolicy`    | string | Used with `hostPath`. Sets the PV reclaim policy.                                                                                                                              | `Retain`       |
+| `accessModes`      | array  | PVC access modes.                                                                                                                                                              | `[ReadWriteOnce]` |
+| `labels`           | map    | Extra labels merged into metadata.                                                                                                                                             | `{}`           |
+| `selector`         | object | Label selector to bind to a specific PV. (Auto-generated if `hostPath` is used).                                                                                              | unset          |
+| `backup.enabled`   | bool   | When `true`, also renders `templates/pvc-backup.yaml`, which provisions Restic CronJobs + Secret per PVC.                                                                      | `false`        |
+| `backup.schedule`  | string | Optional Cron expression for the snapshot job. Falls back to `defaults.backup.schedule`.                                                                                       | `*/30 * * * *` |
+| `backup.forgetSchedule` | string | Optional Cron expression for the retention job. Falls back to `defaults.backup.forgetSchedule`.                                                                           | `@daily`       |
+| `backup.pruningPolicy` | object | Optional overrides to the Retention policy used by the forget job.                                                                                                          | see values     |
 
-- One CronJob handles snapshots (default every 30 minutes) using `restic/restic`, backing up `/data` (the mounted PVC).
-- A second CronJob enforces retention once per day with `restic forget` so that expensive Backblaze transactions only occur daily.
-- Secrets referenced inside the backup template rely on external secret injection (see the `<path:...>` placeholders). Update those secret references to match your vault or secret store if needed.
+Example (Static Provisioning - Unified):
 
-Example:
+```yaml
+persistentVolumeClaims:
+  media-storage:
+    storageClassName: local-data-manual
+    storage: 500Gi
+    hostPath: "/Users/yourname/Media"
+    reclaimPolicy: Retain
+```
+
+Example (Dynamic Provisioning):
 
 ```yaml
 persistentVolumeClaims:
@@ -284,12 +296,17 @@ persistentVolumeClaims:
     storage: 10Gi
     backup:
       enabled: true
-# ... other chart values ...
-apps:
-  uptime-kuma:
-    volumes:
-      - name: uptime-kuma-data
-        mountPath: /app/data
-        persistentVolumeClaim:
-          claimName: uptime-kuma-data
 ```
+
+### `persistentVolumes.<name>` objects
+
+Define standalone PersistentVolumes. Use this only if you need to define a PV that is shared across multiple namespaces or isn't tied to a specific PVC in this chart. For local provisioning, use the unified `hostPath` under `persistentVolumeClaims` instead.
+
+| Key                | Type   | Description                                                              | Default  |
+| ------------------ | ------ | ------------------------------------------------------------------------ | -------- |
+| `storageClassName` | string | Storage class name.                                                      | `manual` |
+| `storage`          | string | Capacity of the volume (for example `500Gi`).                            | unset    |
+| `reclaimPolicy`    | string | `Retain`, `Recycle`, or `Delete`.                                        | `Retain` |
+| `hostPath`         | string | Absolute path on the host node.                                          | unset    |
+| `labels`           | map    | Extra labels for matching.                                               | `{}`     |
+

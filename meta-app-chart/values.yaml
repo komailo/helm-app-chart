@@ -48,19 +48,3 @@ resticBackup:
       else
         echo "[backup] Repo found, skipping init."
       fi
-
-persistence:
-  # -- Map of PersistentVolumes to create.
-  persistentVolumes: {}
-    # local-data1:
-    #   storageClassName: manual
-    #   capacity: 100Gi
-    #   accessModes: [ReadWriteMany]
-    #   hostPath: "/mnt/localdisk/"
-
-  # -- Map of PersistentVolumeClaims to create.
-  persistentVolumeClaims: {}
-    # local-data1:
-    #   storageClassName: local-data1
-    #   accessModes: [ReadWriteMany]
-    #   storage: 100Gi

@@ -1,0 +1,80 @@
+apps:
+  dokuwiki:
+    enabled: true
+    replicas: 1
+    livenessProbe:
+      enabled: true
+      type: command
+      command:
+        - curl
+        - --fail
+        - --silent
+        - --output
+        - /dev/null
+        - http://127.0.0.1:8761
+      initialDelaySeconds: 30
+      periodSeconds: 60
+      timeoutSeconds: 30
+    ingress:
+      enabled: true
+      className: traefik
+      certManagerClusterIssuer: letsencrypt-prod
+      annotations: {}
+      hosts:
+        - host: dokuwiki.digimach.com
+          paths:
+            - path: /
+              pathType: Prefix
+              servicePort: http # maps to the named Service port or a number
+    image:
+      repository: "ghcr.io/komailo/dokuwiki-image"
+      tag: latest@sha256:1b3d59bfd3b5d555a92216fd7b7c88f109e6af86fd4f9537b41d230a3152a90d
+    env:
+      - name: APACHE_RUN_USER
+        value: "dokuwiki"
+      - name: APACHE_RUN_GROUP
+        value: "dokuwiki"
+    service:
+      type: ClusterIP
+    ports:
+      - name: http
+        containerPort: 8761 # spec.template.spec.containers[].ports[].containerPort
+        protocol: TCP # optional; defaults to TCP
+        service:
+          enabled: true # set false for internal-only container ports
+          type: ClusterIP # optional; defaults to ClusterIP
+          port: 80 # spec.ports[].port
+          targetPort: http # spec.ports[].targetPort; defaults to container port/name
+          nodePort: null # required only if service.type == NodePort/LoadBalancer
+    volumes:
+      - &dokuwiki-volume-base
+        name: dokuwiki-data
+        mountPath: /var/www/html
+        subPath: data
+        persistentVolumeClaim:
+          claimName: dokuwiki-data
+      - name: dokuwiki-logs
+        mountPath: /var/log/apache2
+        persistentVolumeClaim:
+          claimName: dokuwiki-logs
+      - <<: *dokuwiki-volume-base
+        mountPath: /etc/apache2/mellon
+        subPath: mellon
+      - <<: *dokuwiki-volume-base
+        mountPath: /etc/apache2/sites-enabled/000-default.conf
+        subPath: 000-default.conf
+      - <<: *dokuwiki-volume-base
+        mountPath: /etc/apache2/ports.conf
+        subPath: ports.conf
+
+persistentVolumeClaims:
+  dokuwiki-data:
+    backup:
+      enabled: true
+    storageClassName: local-path-ott-production-1-data-1
+    storage: 10Gi
+  dokuwiki-logs:
+    backup:
+      enabled: false
+    storageClassName: local-path-ott-production-1-data-1
+    storage: 10Gi

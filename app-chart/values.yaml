@@ -131,6 +131,10 @@ apps:
   #           targetPort: http # spec.ports[].targetPort; defaults to container port/name
   #           nodePort: null # required only if service.type == NodePort/LoadBalancer
 
+# -- Map of named PersistentVolumes rendered ahead of workloads.
+# For local hostPath provisioning, define `hostPath` directly under `persistentVolumeClaims` instead.
+persistentVolumes: {}
+
 # -- Map of named PersistentVolumeClaims rendered ahead of workloads.
 persistentVolumeClaims:
   {}
@@ -139,6 +143,11 @@ persistentVolumeClaims:
   #     enabled: true
   #   storageClassName: local-path-ott-production-1-data-1
   #   storage: 10Gi
+  # media-storage:
+  #   storageClassName: local-data-manual
+  #   storage: 500Gi
+  #   hostPath: "/Users/yourname/Media"
+  #   reclaimPolicy: Retain
 
 # -- Map of CronJob definitions rendered via `templates/cronjob.yaml`.
 cronJobs: {}

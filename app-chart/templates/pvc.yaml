@@ -1,3 +1,10 @@
 {{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
-{{ include "library-app-chart.pv.claim" (dict "name" $pvcName "pvc" $pvc "root" $) }}
+{{- $pvcCtx := $pvc }}
+{{- if $pvc.hostPath }}
+  {{- $pvName := printf "%s-%s" $.Release.Namespace $pvcName }}
+  {{- $selector := dict "matchLabels" (dict "app-chart-pv" $pvName) }}
+  {{- $pvcCtx = merge (dict "selector" $selector) $pvc }}
+{{- end }}
+{{ include "library-app-chart.pv.claim" (dict "name" $pvcName "pvc" $pvcCtx "root" $) }}
+---
 {{- end }}

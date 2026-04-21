@@ -84,6 +84,11 @@
       "default": {},
       "additionalProperties": { "$ref": "#/definitions/appSpec" }
     },
+    "persistentVolumes": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": { "$ref": "#/definitions/pvSpec" }
+    },
     "persistentVolumeClaims": {
       "type": "object",
       "default": {},
@@ -460,6 +465,31 @@
       "properties": {
         "storageClassName": { "type": "string" },
         "storage": { "type": "string" },
+        "hostPath": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" }
+              },
+              "required": ["path"]
+            }
+          ]
+        },
+        "reclaimPolicy": { "type": "string" },
+        "accessModes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "selector": {
+          "type": "object",
+          "additionalProperties": true
+        },
         "backup": { "$ref": "#/definitions/backupPolicy" },
         "restore": {
           "type": "object",
@@ -473,7 +503,37 @@
           "additionalProperties": false
         }
       },
-      "required": ["storageClassName", "storage"],
+      "required": ["storage"],
+      "additionalProperties": false
+    },
+    "pvSpec": {
+      "type": "object",
+      "properties": {
+        "storageClassName": { "type": "string" },
+        "storage": { "type": "string" },
+        "capacity": { "type": "string" },
+        "labels": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "reclaimPolicy": { "type": "string" },
+        "accessModes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "hostPath": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" }
+              },
+              "required": ["path"]
+            }
+          ]
+        }
+      },
       "additionalProperties": false
     },
     "cronJobContainer": {
