@@ -258,16 +258,19 @@ Copy the example block, rename the key (`whoami` → new service), and adjust po
 
 ### `persistentVolumeClaims.<name>` objects
 
-Every entry under `persistentVolumeClaims` renders a PVC from `templates/pvc.yaml`. Add a matching `volumes[].persistentVolumeClaim.claimName` inside the consuming app to mount it.
+Every entry under `persistentVolumeClaims` renders a PVC from `templates/pvc.yaml`. If `hostPath` is supplied, it also renders a matching `PersistentVolume` and binds them automatically. Add a matching `volumes[].persistentVolumeClaim.claimName` inside the consuming app to mount it.
 
-| Key                | Type   | Description                                                                                                | Default      |
-| ------------------ | ------ | ---------------------------------------------------------------------------------------------------------- | ------------ |
-| `storageClassName` | string | Required. Class the PVC should bind to.                                                                    | **required** |
-| `storage`          | string | Required. Capacity request (for example `10Gi`).                                                           | **required** |
-| `backup.enabled`   | bool   | When `true`, also renders `templates/pvc-backup.yaml`, which provisions Restic CronJobs + Secret per PVC.  | `false`      |
-| `backup.schedule`  | string | Optional Cron expression for the snapshot job. Falls back to `defaults.backup.schedule`.                   | `*/30 * * * *` |
-| `backup.forgetSchedule` | string | Optional Cron expression for the retention job. Falls back to `defaults.backup.forgetSchedule`.       | `@daily`     |
-| `backup.pruningPolicy` | object | Optional overrides to the Retention policy used by the forget job.                                      | see values   |
+| Key                | Type   | Description                                                                                                                                      | Default         |
+| ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
+| `storage`          | string | Required. Capacity request (for example `10Gi`).                                                                                                 | **required**    |
+| `storageClassName` | string | Optional. Class the PVC should bind to. Automatically derived if `hostPath` is used.                                                             | unset           |
+| `hostPath`         | string | Optional. Local path on the host to mount. When set, an associated `PersistentVolume` is created automatically.                                  | unset           |
+| `accessMode`       | string | Optional. Access mode for the PV and PVC.                                                                                                        | `ReadWriteOnce` |
+| `reclaimPolicy`    | string | Optional. Reclaim policy for the automatically created PV (only applies when `hostPath` is set).                                                 | `Retain`        |
+| `backup.enabled`   | bool   | When `true`, also renders `templates/pvc-backup.yaml`, which provisions Restic CronJobs + Secret per PVC.                                         | `false`         |
+| `backup.schedule`  | string | Optional Cron expression for the snapshot job. Falls back to `defaults.backup.schedule`.                                                         | `*/30 * * * *`  |
+| `backup.forgetSchedule` | string | Optional Cron expression for the retention job. Falls back to `defaults.backup.forgetSchedule`.                                              | `@daily`        |
+| `backup.pruningPolicy` | object | Optional overrides to the Retention policy used by the forget job.                                                                             | see values      |
 
 When backups are enabled:
 
