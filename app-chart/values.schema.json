@@ -157,10 +157,15 @@
       "properties": {
         "name": { "type": "string" },
         "image": { "$ref": "#/definitions/image" },
+        "command": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "args": {
           "type": "array",
           "items": { "type": "string" }
         },
+        "workingDir": { "type": "string" },
         "env": {
           "type": "array",
           "items": { "$ref": "#/definitions/envVar" }
@@ -169,6 +174,8 @@
           "type": "array",
           "items": { "$ref": "#/definitions/envFromSource" }
         },
+        "resources": { "type": "object" },
+        "securityContext": { "type": "object" },
         "livenessProbe": { "$ref": "#/definitions/probe" },
         "readinessProbe": { "$ref": "#/definitions/probe" },
         "ports": {
@@ -181,7 +188,7 @@
         }
       },
       "required": ["name", "image"],
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "volumeSpec": {
       "type": "object",
