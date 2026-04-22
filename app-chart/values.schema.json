@@ -176,6 +176,12 @@
         },
         "resources": { "type": "object" },
         "securityContext": { "type": "object" },
+        "restartPolicy": {
+          "type": "string",
+          "enum": ["Always"],
+          "description": "Restart policy for the container. Set to 'Always' for native sidecars in initContainers."
+        },
+        "startupProbe": { "$ref": "#/definitions/probe" },
         "livenessProbe": { "$ref": "#/definitions/probe" },
         "readinessProbe": { "$ref": "#/definitions/probe" },
         "ports": {
@@ -389,6 +395,7 @@
           "items": { "$ref": "#/definitions/configMapMountRef" },
           "default": []
         },
+        "startupProbe": { "$ref": "#/definitions/probe" },
         "livenessProbe": { "$ref": "#/definitions/probe" },
         "readinessProbe": { "$ref": "#/definitions/probe" },
         "service": { "$ref": "#/definitions/servicePort" },
@@ -400,6 +407,11 @@
         "volumes": {
           "type": "array",
           "items": { "$ref": "#/definitions/volumeSpec" },
+          "default": []
+        },
+        "initContainers": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/sidecarSpec" },
           "default": []
         },
         "sidecars": {

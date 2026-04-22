@@ -24,10 +24,14 @@
   securityContext:
 {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- with $container.restartPolicy }}
+  restartPolicy: {{ . }}
+  {{- end }}
   {{- with (include "app-chart.deployment.containerPorts" (dict "ports" $container.ports "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.envFrom" (dict "envFrom" $container.envFrom)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.env" (dict "env" $container.env "context" $context "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.resources" (dict "resources" $container.resources)) }}{{ . | nindent 2 }}{{- end }}
+  {{- with (include "app-chart.deployment.startupProbe" (dict "startupProbe" $container.startupProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.livenessProbe" (dict "livenessProbe" $container.livenessProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.readinessProbe" (dict "readinessProbe" $container.readinessProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
   {{- /* Unify volume mounts: main container uses .volumes, sidecars use .volumeMounts */ -}}
@@ -88,6 +92,66 @@ env:
     {{- fail (printf "apps.%s.env[%d] requires either value or valueFrom" $appName $idx) }}
     {{- end }}
 {{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Renders optional startupProbe for a container */}}
+{{- define "app-chart.deployment.startupProbe" -}}
+{{- $probe := .startupProbe -}}
+{{- $appName := .appName -}}
+{{- if $probe -}}
+  {{- $enabled := true -}}
+  {{- if hasKey $probe "enabled" -}}
+    {{- $enabled = $probe.enabled -}}
+  {{- end -}}
+  {{- if $enabled -}}
+startupProbe:
+  {{- $probeType := default "command" $probe.type }}
+  {{- if eq $probeType "command" }}
+  exec:
+    command:
+    {{- $command := required (printf "apps.%s.startupProbe.command is required when type=command" $appName) $probe.command }}
+    {{- range $cmd := $command }}
+      - {{ $cmd | quote }}
+    {{- end }}
+  {{- else if eq $probeType "http" }}
+  httpGet:
+    {{- $port := required (printf "apps.%s.startupProbe.port is required when type=http" $appName) $probe.port }}
+    {{- $path := default "/" $probe.path }}
+    path: {{ $path | quote }}
+    port: {{ $port }}
+    {{- with $probe.host }}
+    host: {{ . | quote }}
+    {{- end }}
+    {{- with $probe.scheme }}
+    scheme: {{ . | quote }}
+    {{- end }}
+    {{- with $probe.httpHeaders }}
+    httpHeaders:
+    {{- range $idx, $header := . }}
+      - name: {{ required (printf "apps.%s.startupProbe.httpHeaders[%d].name is required" $appName $idx) $header.name | quote }}
+        value: {{ required (printf "apps.%s.startupProbe.httpHeaders[%d].value is required" $appName $idx) $header.value | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else }}
+  {{- fail (printf "apps.%s.startupProbe.type %s is not supported" $appName $probeType) }}
+  {{- end }}
+  {{- with $probe.initialDelaySeconds }}
+  initialDelaySeconds: {{ . }}
+  {{- end }}
+  {{- with $probe.periodSeconds }}
+  periodSeconds: {{ . }}
+  {{- end }}
+  {{- with $probe.timeoutSeconds }}
+  timeoutSeconds: {{ . }}
+  {{- end }}
+  {{- with $probe.successThreshold }}
+  successThreshold: {{ . }}
+  {{- end }}
+  {{- with $probe.failureThreshold }}
+  failureThreshold: {{ . }}
+  {{- end }}
+  {{- end }}
 {{- end }}
 {{- end }}
 
