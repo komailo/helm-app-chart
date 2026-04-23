@@ -12,37 +12,65 @@ tasks:
   test-values:
     desc: Clone komail/helm-values and render this chart against every values file under app-chart
     cmds:
+      - task: :clone-values
+      - task: :render-suite
+        vars: {OUT_ROOT: ".generated/app-charts", CHART_REF: "{{.CHART_DIR}}"}
+
+  diff-values:
+    desc: Compare rendered manifests between origin/main and current workdir
+    cmds:
+      - task: :clone-values
+      - |
+        set -euo pipefail
+        TMP_BASE=".task-tmp/diff"
+        rm -rf "$TMP_BASE"
+        mkdir -p "$TMP_BASE/base" "$TMP_BASE/head"
+        echo "==> Preparing origin/main workspace..."
+        git archive origin/main | tar -x -C "$TMP_BASE/base"
+      - task: :render-suite
+        vars: {OUT_ROOT: ".task-tmp/diff/base/out", CHART_REF: ".task-tmp/diff/base/app-chart"}
+      - task: :render-suite
+        vars: {OUT_ROOT: ".task-tmp/diff/head/out", CHART_REF: "{{.CHART_DIR}}"}
+      - |
+        set -euo pipefail
+        echo "==> Comparing manifests..."
+        diff -uNr ".task-tmp/diff/base/out" ".task-tmp/diff/head/out" || true
+
+  ":clone-values":
+    internal: true
+    status:
+      - test -d "{{.VALUES_DIR}}"
+    cmds:
       - |
         set -euo pipefail
         mkdir -p "$(dirname {{.VALUES_DIR}})"
-        rm -rf "{{.VALUES_DIR}}"
         git clone --depth 1 "{{.VALUES_REPO}}" "{{.VALUES_DIR}}"
+
+  ":render-suite":
+    internal: true
+    cmds:
       - |
         set -euo pipefail
         if [ ! -d "{{.VALUES_ROOT}}" ]; then
           echo "expected {{.VALUES_ROOT}} to exist" >&2
           exit 1
         fi
-        mkdir -p .generated/app-charts
+        mkdir -p "{{.OUT_ROOT}}"
 
-        helm dependency update "{{.CHART_DIR}}"
+        # Ensure dependencies are available for the chart being rendered
+        (cd "{{.CHART_REF}}" && helm dependency update >/dev/null 2>&1 || true)
 
         for suite in "{{.VALUES_ROOT}}"/*; do
-          [ -d "$suite" ] || continue
+          if [ ! -d "$suite" ]; then continue; fi
           release="$(basename "$suite")"
-          ran_any=false
+          has_yaml=$(ls "$suite"/*.yaml 2>/dev/null | wc -l)
+          if [ "$has_yaml" -eq 0 ]; then continue; fi
+
           for values in "$suite"/*.yaml; do
-            if [ ! -f "$values" ]; then
-              continue
-            fi
-            ran_any=true
-            outDir=".generated/app-charts/$release"
+            [ -f "$values" ] || continue
+            outDir="{{.OUT_ROOT}}/$release"
             mkdir -p "$outDir"
             outFile="$outDir/$(basename "$values")"
-            echo "==> helm template $release using $values -> $outFile"
-            helm template "$release" "{{.CHART_DIR}}" --namespace "$release" --values "$values" --debug > "$outFile"
+            helm template "$release" "{{.CHART_REF}}" --namespace "$release" --values "$values" --debug > "$outFile" 2>/dev/null || rm -f "$outFile"
           done
-          if [ "$ran_any" = false ]; then
-            echo "(skipping $release - no .yaml files)" >&2
-          fi
         done

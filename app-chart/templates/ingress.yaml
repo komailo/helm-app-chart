@@ -17,10 +17,19 @@ kind: Ingress
 metadata:
   name: {{ $ingressName }}
   namespace: {{ $.Release.Namespace }}
-{{- if or ($ing.annotations) ($ing.certManagerClusterIssuer) }}
+{{- $middlewares := list -}}
+{{- if $ing.middlewares -}}
+  {{- if $ing.middlewares.stripPrefix -}}
+    {{- $middlewares = append $middlewares (printf "%s-%s-strip-prefix@kubernetescrd" $.Release.Namespace $appName) -}}
+  {{- end -}}
+{{- end -}}
+{{- if or ($ing.annotations) ($ing.certManagerClusterIssuer) (gt (len $middlewares) 0) }}
   annotations:
 {{- if $ing.certManagerClusterIssuer }}
     cert-manager.io/cluster-issuer: {{ $ing.certManagerClusterIssuer | quote }}
+{{- end }}
+{{- if gt (len $middlewares) 0 }}
+    traefik.ingress.kubernetes.io/router.middlewares: {{ join "," $middlewares | quote }}
 {{- end }}
 {{- range $key, $value := $ing.annotations }}
     {{ $key }}: {{ $value | quote }}
