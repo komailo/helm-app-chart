@@ -10,6 +10,15 @@ The repo now ships three sibling charts:
 
 `app-chart/` keeps the standard Helm layout: `Chart.yaml` carries metadata, `values.yaml` contains the multi-app defaults, and `templates/` renders Kubernetes objects. The chart supports defining **any number of apps** under `values.apps`, each with its own replica count, ports, service strategy, and ingress configuration. Keep helper files beside the templates they affect and prefer small, composable template snippets over large conditional blocks.
 
+## Philosophy: Intent-Driven Configuration
+
+The `app-chart` follows an **intent-driven** design pattern. The goal is to separate *what* the application needs (business intent) from *how* it is implemented in Kubernetes (technical realization).
+
+- **Service-Owner Perspective:** `values.yaml` should be designed for a developer who knows their app's requirements (ports, URLs, dependencies) but shouldn't need to be an expert in Traefik CRDs, Network Policies, or complex Ingress annotations.
+- **Abstraction over Raw CRDs:** Avoid exposing raw Kubernetes fields. Instead of requiring a Traefik `Middleware` CRD to be defined manually, provide intent-based keys like `ingress.middlewares.stripPrefix`.
+- **Automatic Wiring:** The templates are responsible for the "glue." If a user expresses an intent (like stripping a prefix), the chart should automatically generate the necessary resources (Middlewares) and wire them (Annotations) without further user intervention.
+- **Evolutionary Values:** When new technical requirements emerge, we first decide how to express that requirement as a simple, human-readable value, and then update the templates to honor that new "intent."
+
 ## Build, Test, and Validation Commands
 
 Run Helm commands from within the chart you are testing. For the main chart:

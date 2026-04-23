@@ -1,0 +1,24 @@
+{{- $root := . }}
+{{- range $appName, $app := .Values.apps }}
+{{- $ing := $app.ingress }}
+{{- if and (or (not (hasKey $app "enabled")) $app.enabled) ($ing.enabled | default false) ($ing.middlewares) }}
+{{- if $ing.middlewares.stripPrefix }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $appName }}-strip-prefix
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $appName }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
+spec:
+  stripPrefix:
+    prefixes:
+{{- range $prefix := $ing.middlewares.stripPrefix }}
+      - {{ $prefix | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

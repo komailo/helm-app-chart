@@ -62,6 +62,9 @@ apps:
   #       className: nginx
   #       certManagerClusterIssuer: "letsencrypt-prod"
   #       annotations: {}
+  #       middlewares:
+  #         stripPrefix:
+  #           - /qt
   #       hosts:
   #         - host: whoami.local
   #           paths:

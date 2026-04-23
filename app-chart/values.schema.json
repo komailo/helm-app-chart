@@ -432,6 +432,16 @@
               "type": "object",
               "additionalProperties": { "type": "string" }
             },
+            "middlewares": {
+              "type": "object",
+              "properties": {
+                "stripPrefix": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              },
+              "additionalProperties": false
+            },
             "hosts": {
               "type": "array",
               "items": { "$ref": "#/definitions/ingressHost" }
