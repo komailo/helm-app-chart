@@ -1,14 +1,31 @@
+{{- if .Values.networkPolicy.enabled -}}
+
+{{- if .Values.networkPolicy.defaults.isolateNamespace }}
 ---
-# 1. THE FOUNDATION: Allow DNS and Kube-System Access
+# 1. THE FOUNDATION: Default Isolation (Deny All)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: base-isolation
-  namespace: "{{ .Release.Namespace }}"
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   podSelector: {}
   policyTypes:
     - Ingress
+    - Egress
+{{- end }}
+
+{{- if .Values.networkPolicy.defaults.allowDNS }}
+---
+# 2. DNS ACCESS: Allow DNS resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  podSelector: {}
+  policyTypes:
     - Egress
   egress:
     - to:
@@ -20,14 +37,55 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+{{- end }}
 
+{{- if .Values.networkPolicy.defaults.allowSameNamespace }}
 ---
-# 2. THE EXIT: Allow Internet (Public IPs only)
+# 3. THE NEIGHBORS: Allow All Traffic Within the Namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - podSelector: {}
+{{- end }}
+
+{{- if .Values.networkPolicy.defaults.ingressController.enabled }}
+---
+# 4. THE ENTRANCE: Allow Ingress Controller Traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            {{- toYaml .Values.networkPolicy.defaults.ingressController.namespaceSelector | nindent 14 }}
+{{- end }}
+
+{{- if .Values.networkPolicy.defaults.allowInternetEgress }}
+---
+# 5. GLOBAL INTERNET: Allow Public Internet Egress
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-internet-egress
-  namespace: "{{ .Release.Namespace }}"
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   podSelector: {}
   policyTypes:
@@ -40,39 +98,73 @@ spec:
               - 10.0.0.0/8
               - 172.16.0.0/12
               - 192.168.0.0/16
+{{- end }}
 
+{{- if or .Values.networkPolicy.globalRules.ingress .Values.networkPolicy.globalRules.egress }}
 ---
-# 3. THE ENTRANCE: Allow Traefik Ingress
+# 6. GLOBAL RULES: Custom namespace-wide rules
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-ingress-traffic
-  namespace: "{{ .Release.Namespace }}"
+  name: global-custom-rules
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   podSelector: {}
   policyTypes:
+    {{- if .Values.networkPolicy.globalRules.ingress }}
     - Ingress
+    {{- end }}
+    {{- if .Values.networkPolicy.globalRules.egress }}
+    - Egress
+    {{- end }}
+  {{- if .Values.networkPolicy.globalRules.ingress }}
   ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: traefik
+    {{- toYaml .Values.networkPolicy.globalRules.ingress | nindent 4 }}
+  {{- end }}
+  {{- if .Values.networkPolicy.globalRules.egress }}
+  egress:
+    {{- toYaml .Values.networkPolicy.globalRules.egress | nindent 4 }}
+  {{- end }}
+{{- end }}
 
+{{- range $appName, $app := .Values.apps }}
+{{- if $app.networkPolicy }}
 ---
-# 4. THE NEIGHBORS: Allow All Traffic Within the Namespace
+# APP POLICY: {{ $appName }}
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-same-namespace
-  namespace: "{{ .Release.Namespace }}"
+  name: {{ printf "app-%s" $appName | quote }}
+  namespace: {{ $.Release.Namespace | quote }}
 spec:
-  podSelector: {} # Target all pods in this namespace
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $appName | quote }}
   policyTypes:
-    - Ingress
+    {{- if or $app.networkPolicy.allowInternetEgress $app.networkPolicy.egress }}
     - Egress
+    {{- end }}
+    {{- if $app.networkPolicy.ingress }}
+    - Ingress
+    {{- end }}
+  {{- if $app.networkPolicy.ingress }}
   ingress:
-    - from:
-        - podSelector: {} # Allow from all pods in this namespace
+    {{- toYaml $app.networkPolicy.ingress | nindent 4 }}
+  {{- end }}
   egress:
+    {{- if $app.networkPolicy.allowInternetEgress }}
     - to:
-        - podSelector: {} # Allow to all pods in this namespace
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+    {{- end }}
+    {{- if $app.networkPolicy.egress }}
+    {{- toYaml $app.networkPolicy.egress | nindent 4 }}
+    {{- end }}
+{{- end }}
+{{- end }}
+
+{{- end }}

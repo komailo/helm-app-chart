@@ -39,6 +39,33 @@ clusterName: ""
 namespace:
   enabled: false
 
+# -- Global configuration for Network Policies across the entire namespace.
+networkPolicy:
+  # -- Enable or disable the creation of NetworkPolicies.
+  enabled: true
+
+  # Base policies applied to the entire namespace (podSelector: {})
+  defaults:
+    # -- Enable default deny-all (Ingress/Egress) for the namespace.
+    isolateNamespace: true
+    # -- Allow DNS (UDP/TCP 53) to the kube-system namespace.
+    allowDNS: true
+    # -- Allow all traffic between pods within this namespace.
+    allowSameNamespace: true
+    # -- Allow external internet egress (blocks RFC1918 private IPs).
+    allowInternetEgress: true
+    # -- Allow ingress traffic from a specific ingress controller.
+    ingressController:
+      enabled: true
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: traefik
+
+  # -- Additional global ingress rules applied to the entire namespace.
+  globalRules:
+    ingress: []
+    egress: []
+
 # -- Map of ConfigMaps shared across apps. Each entry renders a ConfigMap manifest that apps may mount via `configMounts`.
 configMaps:
   {}
@@ -97,6 +124,10 @@ apps:
   #       - name: shared-config
   #         path: /etc/app-config/config.yaml
   #         subPath: nested/config.yaml
+  #     networkPolicy:
+  #       allowInternetEgress: false
+  #       ingress: []
+  #       egress: []
   #     livenessProbe:
   #       enabled: true
   #       type: http
