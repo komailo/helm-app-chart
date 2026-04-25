@@ -74,6 +74,43 @@
       },
       "additionalProperties": false
     },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable or disable NetworkPolicies.",
+          "default": true
+        },
+        "defaults": {
+          "type": "object",
+          "properties": {
+            "isolateNamespace": { "type": "boolean", "default": true },
+            "allowDNS": { "type": "boolean", "default": true },
+            "allowSameNamespace": { "type": "boolean", "default": true },
+            "allowInternetEgress": { "type": "boolean", "default": true },
+            "ingressController": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean", "default": true },
+                "namespaceSelector": { "type": "object" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "globalRules": {
+          "type": "object",
+          "properties": {
+            "ingress": { "type": "array", "items": { "type": "object" } },
+            "egress": { "type": "array", "items": { "type": "object" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "configMaps": {
       "type": "object",
       "default": {},
@@ -411,6 +448,15 @@
           "type": "array",
           "items": { "$ref": "#/definitions/volumeSpec" },
           "default": []
+        },
+        "networkPolicy": {
+          "type": "object",
+          "properties": {
+            "allowInternetEgress": { "type": "boolean", "default": false },
+            "ingress": { "type": "array", "items": { "type": "object" } },
+            "egress": { "type": "array", "items": { "type": "object" } }
+          },
+          "additionalProperties": false
         },
         "initContainers": {
           "type": "array",
