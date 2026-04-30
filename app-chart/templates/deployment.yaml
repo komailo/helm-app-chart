@@ -19,7 +19,7 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ $appName }}
+        {{- include "app-chart.labels" (dict "appName" $appName "context" $) | nindent 8 }}
     spec:
       {{- if $app.initContainers }}
       initContainers:

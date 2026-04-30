@@ -8,6 +8,9 @@ kind: NetworkPolicy
 metadata:
   name: base-isolation
   namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
 spec:
   podSelector: {}
   policyTypes:
@@ -23,6 +26,9 @@ kind: NetworkPolicy
 metadata:
   name: allow-dns
   namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
 spec:
   podSelector: {}
   policyTypes:
@@ -47,6 +53,9 @@ kind: NetworkPolicy
 metadata:
   name: allow-same-namespace
   namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
 spec:
   podSelector: {}
   policyTypes:
@@ -68,6 +77,9 @@ kind: NetworkPolicy
 metadata:
   name: allow-ingress-controller
   namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
 spec:
   podSelector: {}
   policyTypes:
@@ -86,6 +98,9 @@ kind: NetworkPolicy
 metadata:
   name: allow-internet-egress
   namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
 spec:
   podSelector: {}
   policyTypes:
@@ -108,6 +123,9 @@ kind: NetworkPolicy
 metadata:
   name: global-custom-rules
   namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
 spec:
   podSelector: {}
   policyTypes:
@@ -136,10 +154,12 @@ kind: NetworkPolicy
 metadata:
   name: {{ printf "app-%s" $appName | quote }}
   namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    {{- include "app-chart.labels" (dict "appName" $appName "context" $) | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: {{ $appName | quote }}
+      app: {{ $appName | quote }}
   policyTypes:
     {{- if or $app.networkPolicy.allowInternetEgress $app.networkPolicy.egress }}
     - Egress
@@ -151,6 +171,7 @@ spec:
   ingress:
     {{- toYaml $app.networkPolicy.ingress | nindent 4 }}
   {{- end }}
+  {{- if or $app.networkPolicy.allowInternetEgress $app.networkPolicy.egress }}
   egress:
     {{- if $app.networkPolicy.allowInternetEgress }}
     - to:
@@ -164,6 +185,7 @@ spec:
     {{- if $app.networkPolicy.egress }}
     {{- toYaml $app.networkPolicy.egress | nindent 4 }}
     {{- end }}
+  {{- end }}
 {{- end }}
 {{- end }}
 
