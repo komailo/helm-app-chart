@@ -12,6 +12,8 @@ kind: Service
 metadata:
   name: {{ $appName }}
   namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "app-chart.labels" (dict "appName" $appName "context" $) | nindent 4 }}
 spec:
   type: {{ $serviceType }}
   selector:
