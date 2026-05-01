@@ -36,6 +36,17 @@ tasks:
         echo "==> Comparing manifests..."
         diff -uNr ".task-tmp/diff/base/out" ".task-tmp/diff/head/out" || true
 
+  scan:
+    desc: Scan rendered manifests in .generated folder using kubescape
+    cmds:
+      - |
+        if [ ! -d ".generated" ]; then
+          echo "Error: .generated directory not found. Run 'task test-values' first."
+          exit 1
+        fi
+        kubescape scan framework all .generated/
+
+
   ":clone-values":
     internal: true
     status:

@@ -507,6 +507,20 @@
             }
           },
           "additionalProperties": false
+        },
+        "vpa": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "updateMode": {
+              "type": "string",
+              "enum": ["Off", "Initial", "Recreate", "Auto"],
+              "default": "Off"
+            },
+            "minAllowed": { "type": "object" },
+            "maxAllowed": { "type": "object" }
+          },
+          "additionalProperties": false
         }
       },
       "required": ["image"],
