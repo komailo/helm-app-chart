@@ -84,6 +84,15 @@ apps:
   #   whoami:
   #     enabled: true
   #     replicas: 2
+  #     vpa:
+  #       enabled: true
+  #       updateMode: "Off" # Default. Options: Off, Initial, Recreate, Auto
+  #       # minAllowed:
+  #       #   cpu: 100m
+  #       #   memory: 128Mi
+  #       # maxAllowed:
+  #       #   cpu: 1
+  #       #   memory: 2Gi
   #     ingress:
   #       enabled: false
   #       className: nginx
