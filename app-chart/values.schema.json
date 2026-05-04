@@ -414,6 +414,12 @@
         "enabled": { "type": "boolean", "default": true },
         "replicas": { "type": "integer", "minimum": 1 },
         "deployStrategy": { "type": "string" },
+        "topologySpreadConstraints": {
+          "type": "array",
+          "description": "Pod topology spread constraints for HA scheduling.",
+          "items": { "type": "object" },
+          "default": []
+        },
         "image": { "$ref": "#/definitions/image" },
         "args": {
           "type": "array",
