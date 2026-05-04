@@ -20,7 +20,11 @@
   {{- with $container.workingDir }}
   workingDir: {{ . }}
   {{- end }}
-  {{- with $container.securityContext }}
+  {{- $containerSC := $container.securityContext }}
+  {{- if not $containerSC }}
+    {{- $containerSC = $context.Values.defaults.containerSecurityContext }}
+  {{- end }}
+  {{- with $containerSC }}
   securityContext:
 {{- toYaml . | nindent 4 }}
   {{- end }}

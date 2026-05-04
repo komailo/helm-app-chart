@@ -32,6 +32,22 @@ defaults:
       keepMonthly: 24
       keepYearly: 3
 
+  # -- Pod-level security context applied to all Deployments and CronJobs.
+  # Override per-app with `apps.<name>.podSecurityContext`.
+  podSecurityContext:
+    runAsNonRoot: true
+
+  # -- Container-level security context applied to every container rendered by the chart.
+  # Override per-container with `apps.<name>.securityContext` or sidecar-level `securityContext`.
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
 # -- Optional cluster identifier used when building paths for shared backup secrets.
 clusterName: ""
 

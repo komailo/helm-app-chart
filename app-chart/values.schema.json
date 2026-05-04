@@ -59,6 +59,14 @@
             }
           },
           "additionalProperties": false
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "description": "Pod-level security context applied to all Deployments and CronJobs. Override per-app with apps.<name>.podSecurityContext."
+        },
+        "containerSecurityContext": {
+          "type": "object",
+          "description": "Container-level security context applied to every container. Override per-container with apps.<name>.securityContext."
         }
       },
       "additionalProperties": true
@@ -414,6 +422,10 @@
         "enabled": { "type": "boolean", "default": true },
         "replicas": { "type": "integer", "minimum": 1 },
         "deployStrategy": { "type": "string" },
+        "podSecurityContext": {
+          "type": "object",
+          "description": "Per-app override for pod-level security context. Replaces defaults.podSecurityContext for this app."
+        },
         "image": { "$ref": "#/definitions/image" },
         "args": {
           "type": "array",

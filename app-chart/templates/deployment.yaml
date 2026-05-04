@@ -21,6 +21,14 @@ spec:
       labels:
         {{- include "app-chart.labels" (dict "appName" $appName "context" $) | nindent 8 }}
     spec:
+      {{- $podSC := default (dict) $.Values.defaults.podSecurityContext }}
+      {{- if $app.podSecurityContext }}
+        {{- $podSC = $app.podSecurityContext }}
+      {{- end }}
+      {{- if $podSC }}
+      securityContext:
+        {{- toYaml $podSC | nindent 8 }}
+      {{- end }}
       {{- if $app.initContainers }}
       initContainers:
 {{- range $init := $app.initContainers }}
