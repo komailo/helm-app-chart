@@ -458,6 +458,17 @@
           },
           "additionalProperties": false
         },
+        "serviceAccount": {
+          "type": "object",
+          "description": "ServiceAccount configuration for this app.",
+          "properties": {
+            "create": { "type": "boolean", "default": false, "description": "Create a dedicated ServiceAccount for this app." },
+            "name": { "type": "string", "description": "Override the ServiceAccount name (defaults to app name)." },
+            "automountServiceAccountToken": { "type": "boolean", "default": false, "description": "Mount the service account token into pods." },
+            "annotations": { "type": "object", "additionalProperties": { "type": "string" } }
+          },
+          "additionalProperties": false
+        },
         "initContainers": {
           "type": "array",
           "items": { "$ref": "#/definitions/sidecarSpec" },
