@@ -59,6 +59,15 @@
             }
           },
           "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "description": "Default resource requests and limits for all containers. Override per-app via apps.<name>.resources.",
+          "properties": {
+            "requests": { "type": "object" },
+            "limits": { "type": "object" }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": true
