@@ -21,6 +21,11 @@ spec:
       labels:
         {{- include "app-chart.labels" (dict "appName" $appName "context" $) | nindent 8 }}
     spec:
+      {{- $sa := default (dict) $app.serviceAccount }}
+      {{- if $sa.create }}
+      serviceAccountName: {{ default $appName $sa.name }}
+      {{- end }}
+      automountServiceAccountToken: {{ $sa.automountServiceAccountToken | default false }}
       {{- if $app.initContainers }}
       initContainers:
 {{- range $init := $app.initContainers }}
