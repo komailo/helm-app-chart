@@ -21,9 +21,18 @@ spec:
       template:
         spec:
           restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
           containers:
             - name: restic
               image: {{ printf "%s:%s" $.Values.restic.image.repository $.Values.restic.image.tag }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
               env:
                 - name: RESTORE_SNAPSHOT
                   value: {{ default "latest" $restore.snapshot | quote }}
