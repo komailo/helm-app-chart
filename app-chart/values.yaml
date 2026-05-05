@@ -32,6 +32,16 @@ defaults:
       keepMonthly: 24
       keepYearly: 3
 
+  # -- Default resource requests and limits for all containers (Deployments and CronJobs).
+  # Override per-app with `apps.<name>.resources` or per-CronJob with `cronJobs.<name>.container.resources`.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
 # -- Optional cluster identifier used when building paths for shared backup secrets.
 clusterName: ""
 
