@@ -21,6 +21,10 @@ spec:
       labels:
         {{- include "app-chart.labels" (dict "appName" $appName "context" $) | nindent 8 }}
     spec:
+      {{- with $app.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if $app.initContainers }}
       initContainers:
 {{- range $init := $app.initContainers }}
