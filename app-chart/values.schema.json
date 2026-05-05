@@ -521,6 +521,22 @@
             "maxAllowed": { "type": "object" }
           },
           "additionalProperties": false
+        },
+        "pdb": {
+          "type": "object",
+          "description": "PodDisruptionBudget configuration for this app.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "minAvailable": {
+              "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "string" }],
+              "description": "Minimum available pods during voluntary disruptions."
+            },
+            "maxUnavailable": {
+              "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "string" }],
+              "description": "Maximum unavailable pods during voluntary disruptions."
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": ["image"],
