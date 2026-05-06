@@ -248,7 +248,7 @@
         "mountPath": { "type": "string" },
         "subPath": {
           "type": "string",
-          "description": "Optional subPath used when mounting the PVC."
+          "description": "Optional subPath used when mounting the volume."
         },
         "persistentVolumeClaim": {
           "type": "object",
@@ -257,9 +257,12 @@
           },
           "required": ["claimName"],
           "additionalProperties": false
+        },
+        "emptyDir": {
+          "type": "object"
         }
       },
-      "required": ["name", "mountPath", "persistentVolumeClaim"],
+      "required": ["name", "mountPath"],
       "additionalProperties": false
     },
     "configMapItem": {
