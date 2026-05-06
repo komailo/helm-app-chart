@@ -257,8 +257,12 @@ volumes:
   {{- $volumeName := required (printf "volumes[%d].name is required" $idx) $volume.name }}
   {{- if not (hasKey $seen $volumeName) }}
   - name: {{ $volumeName }}
+    {{- if $volume.persistentVolumeClaim }}
     persistentVolumeClaim:
       claimName: {{ $volume.persistentVolumeClaim.claimName }}
+    {{- else if hasKey $volume "emptyDir" }}
+    emptyDir: {{ if $volume.emptyDir }}{{ toYaml $volume.emptyDir | nindent 6 }}{{ else }}{}{{ end }}
+    {{- end }}
   {{- $_ := set $seen $volumeName true }}
   {{- end }}
 {{- end }}
