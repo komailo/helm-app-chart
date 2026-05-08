@@ -31,6 +31,8 @@ helm template . --values values.yaml
 
 `helm lint` should pass before every commit. Use `helm template` (with any ad-hoc `values-<name>.yaml`) to verify rendering for new combinations, and finish with the dry-run upgrade command against the namespace you plan to target. Do not commit value files that contain secrets or personal overrides.
 
+You should also run `task diff-values` from the root of the repository to ensure no unintended changes were introduced, verifying backwards compatibility. If the command highlights any differences, ensure they are intentional and call them out as good defaults or intended changes.
+
 ## Values Design & Coding Style
 
 - `app-chart/values.yaml` must read from a service-owner perspective: describe intent (apps, ingress needs, desired ports) and let the templates translate to Kubernetes structures. YAML uses two-space indentation and lowercase hyphenated keys. Template files rely on Go template trimming (`{{- ... -}}`) to keep manifests tidy. Favor boolean `enabled` flags for toggles (`apps.<name>.enabled`, `apps.<name>.ingress.enabled`, `namespace.enabled`) and name two-dimensional structures by what they configure (e.g., `ports[].service.nodePort`). Metadata names must remain DNS-1123 compliant; templates currently derive them from the entry's app key.
@@ -42,7 +44,7 @@ helm template . --values values.yaml
 
 ## Testing & Review Expectations
 
-Treat `helm lint` and `helm template .` (run from inside the target chart directory) as the minimum test. Augment with `helm template` runs that cover ingress enabled and disabled paths, multiple port definitions, and namespace creation. Before requesting review, capture the exact commands you ran along with any rendered manifest snippets that illustrate behavioral changes (new ports, hosts, TLS blocks, etc.).
+Treat `helm lint`, `helm template .` (run from inside the target chart directory), and `task diff-values` (run from the repository root) as the minimum test. Augment with `helm template` runs that cover ingress enabled and disabled paths, multiple port definitions, and namespace creation. The `task diff-values` command is critical to guarantee backwards compatibility and catch any unintended regressions across all environments. Before requesting review, capture the exact commands you ran along with any rendered manifest snippets that illustrate behavioral changes (new ports, hosts, TLS blocks, etc.). If `task diff-values` yields any output, it must be noted as an intentional change.
 
 ## Commit & Pull Request Guidelines
 
