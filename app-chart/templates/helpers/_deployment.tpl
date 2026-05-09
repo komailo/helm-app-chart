@@ -36,7 +36,7 @@
   {{- with (include "app-chart.deployment.containerPorts" (dict "ports" $container.ports "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.envFrom" (dict "envFrom" $container.envFrom)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.env" (dict "env" $container.env "context" $context "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
-  {{- with (include "app-chart.deployment.resources" (dict "resources" $container.resources)) }}{{ . | nindent 2 }}{{- end }}
+  {{- with (include "app-chart.deployment.resources" (dict "resources" $container.resources "context" $context)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.startupProbe" (dict "startupProbe" $container.startupProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
   {{- /* Auto-generate TCP probes when ports exist but no probe is configured */ -}}
   {{- $autoProbePort := "" -}}
@@ -59,11 +59,15 @@
   {{- with (include "app-chart.deployment.volumeMounts" (dict "volumes" $mounts "configMounts" $container.configMounts "configMaps" $context.Values.configMaps "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
 {{- end }}
 
-{{/* Renders container resources */}}
+{{/* Renders container resources, falling back to defaults.resources */}}
 {{- define "app-chart.deployment.resources" -}}
-{{- if .resources -}}
+{{- $resources := .resources -}}
+{{- if and (not $resources) .context -}}
+  {{- $resources = .context.Values.defaults.resources -}}
+{{- end -}}
+{{- if $resources -}}
 resources:
-{{- toYaml .resources | nindent 2 -}}
+{{- toYaml $resources | nindent 2 -}}
 {{- end -}}
 {{- end }}
 
