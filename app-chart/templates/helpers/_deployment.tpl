@@ -20,6 +20,10 @@
   {{- with $container.workingDir }}
   workingDir: {{ . }}
   {{- end }}
+  {{- with $container.lifecycle }}
+  lifecycle:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- $containerSC := $container.securityContext }}
   {{- if not $containerSC }}
     {{- $containerSC = $context.Values.defaults.containerSecurityContext }}

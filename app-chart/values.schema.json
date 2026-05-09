@@ -221,6 +221,7 @@
         },
         "resources": { "type": "object" },
         "securityContext": { "type": "object" },
+        "lifecycle": { "type": "object" },
         "restartPolicy": {
           "type": "string",
           "enum": ["Always", "OnFailure", "Never"],
@@ -453,6 +454,7 @@
         "startupProbe": { "$ref": "#/definitions/probe" },
         "livenessProbe": { "$ref": "#/definitions/probe" },
         "readinessProbe": { "$ref": "#/definitions/probe" },
+        "lifecycle": { "type": "object" },
         "service": { "$ref": "#/definitions/servicePort" },
         "ports": {
           "type": "array",
@@ -621,7 +623,8 @@
           "default": []
         },
         "resources": { "type": "object" },
-        "securityContext": { "type": "object" }
+        "securityContext": { "type": "object" },
+        "lifecycle": { "type": "object" }
       },
       "required": ["image"],
       "additionalProperties": true

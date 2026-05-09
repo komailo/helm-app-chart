@@ -67,7 +67,8 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 | `ingress.middlewares` | object | Intent-driven Traefik middleware configuration. Supports `stripPrefix`. Automatically generates CRDs and wires Ingress annotations. | `{}` |
 | `livenessProbe`    | object | Optional container liveness probe. Supports `type: command` (exec) or `type: http` (HTTP GET) alongside standard timing fields. | disabled                                               |
 | `readinessProbe`   | object | Optional readiness probe using the same schema (`type: command` or `type: http`).                                           | disabled                                               |
-| `sidecars`         | array  | Optional list of sidecar containers to run in the same Deployment. Supports `name`, `image`, `args`, `env`, `envFrom`, `ports`, `livenessProbe`, `readinessProbe`, and `volumeMounts`. | `[]` |
+| `lifecycle`        | object | Optional container lifecycle hooks such as `postStart` and `preStop`.                                                       | disabled                                               |
+| `sidecars`         | array  | Optional list of sidecar containers to run in the same Deployment. Supports `name`, `image`, `args`, `env`, `envFrom`, `ports`, `livenessProbe`, `readinessProbe`, `lifecycle`, and `volumeMounts`. | `[]` |
 
 ### `configMaps.<name>` object
 
@@ -152,6 +153,7 @@ Each entry renders a Kubernetes `CronJob` with a single container definition. Va
 | `container.env`                        | array  | Same templated env structure as Deployments (supports `tpl` and `valueFrom`).                                   | `[]`           |
 | `container.resources`                  | object | Resource requests/limits map.                                                                                   | `{}`           |
 | `container.securityContext`            | object | Container-level security context.                                                                               | `{}`           |
+| `container.lifecycle`                  | object | Optional container lifecycle hooks such as `postStart` and `preStop`.                                           | unset          |
 | `volumes[]`                            | array  | Optional shared volume definitions reused for mounts and pod volumes (same structure as `apps.<name>.volumes`). | `[]`           |
 
 Example:
