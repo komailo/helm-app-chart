@@ -43,9 +43,18 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
           containers:
             - name: restic
               image: {{ printf "%s:%s" $.Values.restic.image.repository $.Values.restic.image.tag }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
               envFrom:
                 - secretRef:
                     name: restic-backup
@@ -116,9 +125,18 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
           containers:
             - name: restic
               image: {{ printf "%s:%s" $.Values.restic.image.repository $.Values.restic.image.tag }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
               envFrom:
                 - secretRef:
                     name: restic-backup
