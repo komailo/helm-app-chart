@@ -6,9 +6,7 @@
 {{- $name := .name -}}
 - name: {{ $name }}
   image: "{{ $container.image.repository }}:{{ $container.image.tag | default "latest" }}"
-  {{- with $container.image.pullPolicy }}
-  imagePullPolicy: {{ . }}
-  {{- end }}
+  imagePullPolicy: {{ $container.image.pullPolicy | default "IfNotPresent" }}
   {{- with $container.command }}
   command:
 {{- toYaml . | nindent 4 }}
@@ -20,7 +18,15 @@
   {{- with $container.workingDir }}
   workingDir: {{ . }}
   {{- end }}
-  {{- with $container.securityContext }}
+  {{- with $container.lifecycle }}
+  lifecycle:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- $containerSC := $container.securityContext }}
+  {{- if not $containerSC }}
+    {{- $containerSC = $context.Values.defaults.containerSecurityContext }}
+  {{- end }}
+  {{- with $containerSC }}
   securityContext:
 {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -253,8 +259,12 @@ volumes:
   {{- $volumeName := required (printf "volumes[%d].name is required" $idx) $volume.name }}
   {{- if not (hasKey $seen $volumeName) }}
   - name: {{ $volumeName }}
+    {{- if $volume.persistentVolumeClaim }}
     persistentVolumeClaim:
       claimName: {{ $volume.persistentVolumeClaim.claimName }}
+    {{- else if hasKey $volume "emptyDir" }}
+    emptyDir: {{ if $volume.emptyDir }}{{ toYaml $volume.emptyDir | nindent 6 }}{{ else }}{}{{ end }}
+    {{- end }}
   {{- $_ := set $seen $volumeName true }}
   {{- end }}
 {{- end }}
