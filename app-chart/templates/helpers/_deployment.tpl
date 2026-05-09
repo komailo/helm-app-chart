@@ -6,9 +6,7 @@
 {{- $name := .name -}}
 - name: {{ $name }}
   image: "{{ $container.image.repository }}:{{ $container.image.tag | default "latest" }}"
-  {{- with $container.image.pullPolicy }}
-  imagePullPolicy: {{ . }}
-  {{- end }}
+  imagePullPolicy: {{ $container.image.pullPolicy | default "IfNotPresent" }}
   {{- with $container.command }}
   command:
 {{- toYaml . | nindent 4 }}
@@ -20,7 +18,15 @@
   {{- with $container.workingDir }}
   workingDir: {{ . }}
   {{- end }}
-  {{- with $container.securityContext }}
+  {{- with $container.lifecycle }}
+  lifecycle:
+{{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- $containerSC := $container.securityContext }}
+  {{- if not $containerSC }}
+    {{- $containerSC = $context.Values.defaults.containerSecurityContext }}
+  {{- end }}
+  {{- with $containerSC }}
   securityContext:
 {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -32,8 +38,22 @@
   {{- with (include "app-chart.deployment.env" (dict "env" $container.env "context" $context "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.resources" (dict "resources" $container.resources "context" $context)) }}{{ . | nindent 2 }}{{- end }}
   {{- with (include "app-chart.deployment.startupProbe" (dict "startupProbe" $container.startupProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
-  {{- with (include "app-chart.deployment.livenessProbe" (dict "livenessProbe" $container.livenessProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
-  {{- with (include "app-chart.deployment.readinessProbe" (dict "readinessProbe" $container.readinessProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
+  {{- /* Auto-generate TCP probes when ports exist but no probe is configured */ -}}
+  {{- $autoProbePort := "" -}}
+  {{- if $container.ports -}}
+    {{- $firstPort := index $container.ports 0 -}}
+    {{- $autoProbePort = default (printf "%s-%d" $appName (default 80 $firstPort.containerPort)) $firstPort.name -}}
+  {{- end -}}
+  {{- $livenessProbe := $container.livenessProbe -}}
+  {{- if and (not $livenessProbe) $autoProbePort -}}
+    {{- $livenessProbe = dict "type" "tcp" "port" $autoProbePort "initialDelaySeconds" 15 "periodSeconds" 20 "failureThreshold" 3 -}}
+  {{- end -}}
+  {{- with (include "app-chart.deployment.livenessProbe" (dict "livenessProbe" $livenessProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
+  {{- $readinessProbe := $container.readinessProbe -}}
+  {{- if and (not $readinessProbe) $autoProbePort -}}
+    {{- $readinessProbe = dict "type" "tcp" "port" $autoProbePort "initialDelaySeconds" 5 "periodSeconds" 10 "failureThreshold" 3 -}}
+  {{- end -}}
+  {{- with (include "app-chart.deployment.readinessProbe" (dict "readinessProbe" $readinessProbe "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
   {{- /* Unify volume mounts: main container uses .volumes, sidecars use .volumeMounts */ -}}
   {{- $mounts := $container.volumeMounts | default $container.volumes -}}
   {{- with (include "app-chart.deployment.volumeMounts" (dict "volumes" $mounts "configMounts" $container.configMounts "configMaps" $context.Values.configMaps "appName" $appName)) }}{{ . | nindent 2 }}{{- end }}
@@ -257,8 +277,12 @@ volumes:
   {{- $volumeName := required (printf "volumes[%d].name is required" $idx) $volume.name }}
   {{- if not (hasKey $seen $volumeName) }}
   - name: {{ $volumeName }}
+    {{- if $volume.persistentVolumeClaim }}
     persistentVolumeClaim:
       claimName: {{ $volume.persistentVolumeClaim.claimName }}
+    {{- else if hasKey $volume "emptyDir" }}
+    emptyDir: {{ if $volume.emptyDir }}{{ toYaml $volume.emptyDir | nindent 6 }}{{ else }}{}{{ end }}
+    {{- end }}
   {{- $_ := set $seen $volumeName true }}
   {{- end }}
 {{- end }}
