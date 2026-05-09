@@ -6,6 +6,8 @@ kind: Deployment
 metadata:
   name: {{ $appName }}
   namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "app-chart.labels" (dict "appName" $appName "context" $) | nindent 4 }}
 spec:
   {{- if $app.deployStrategy }}
   strategy:
