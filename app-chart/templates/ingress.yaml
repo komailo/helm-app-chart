@@ -39,9 +39,18 @@ spec:
 {{- if $ing.className }}
   ingressClassName: {{ $ing.className }}
 {{- end }}
-{{- if $ing.tls }}
+{{- /* Auto-generate TLS from hosts when certManagerClusterIssuer is set but no explicit tls block */ -}}
+{{- $tlsEntries := $ing.tls -}}
+{{- if and (not $tlsEntries) $ing.certManagerClusterIssuer $ing.hosts -}}
+  {{- $autoHosts := list -}}
+  {{- range $host := $ing.hosts -}}
+    {{- $autoHosts = append $autoHosts $host.host -}}
+  {{- end -}}
+  {{- $tlsEntries = list (dict "hosts" $autoHosts) -}}
+{{- end -}}
+{{- if $tlsEntries }}
   tls:
-{{- range $tls := $ing.tls }}
+{{- range $tls := $tlsEntries }}
     - secretName: {{ $ingressName }}-tls
 {{- if $tls.hosts }}
       hosts:
