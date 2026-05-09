@@ -6,9 +6,7 @@
 {{- $name := .name -}}
 - name: {{ $name }}
   image: "{{ $container.image.repository }}:{{ $container.image.tag | default "latest" }}"
-  {{- with $container.image.pullPolicy }}
-  imagePullPolicy: {{ . }}
-  {{- end }}
+  imagePullPolicy: {{ $container.image.pullPolicy | default "IfNotPresent" }}
   {{- with $container.command }}
   command:
 {{- toYaml . | nindent 4 }}
