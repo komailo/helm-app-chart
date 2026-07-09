@@ -67,7 +67,8 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 | `ingress.middlewares` | object | Intent-driven Traefik middleware configuration. Supports `stripPrefix`. Automatically generates CRDs and wires Ingress annotations. | `{}` |
 | `livenessProbe`    | object | Optional container liveness probe. Supports `type: command` (exec) or `type: http` (HTTP GET) alongside standard timing fields. | disabled                                               |
 | `readinessProbe`   | object | Optional readiness probe using the same schema (`type: command` or `type: http`).                                           | disabled                                               |
-| `sidecars`         | array  | Optional list of sidecar containers to run in the same Deployment. Supports `name`, `image`, `args`, `env`, `envFrom`, `ports`, `livenessProbe`, `readinessProbe`, and `volumeMounts`. | `[]` |
+| `lifecycle`        | object | Optional container lifecycle hooks such as `postStart` and `preStop`.                                                       | disabled                                               |
+| `sidecars`         | array  | Optional list of sidecar containers to run in the same Deployment. Supports `name`, `image`, `args`, `env`, `envFrom`, `ports`, `livenessProbe`, `readinessProbe`, `lifecycle`, and `volumeMounts`. | `[]` |
 
 ### `configMaps.<name>` object
 
@@ -152,6 +153,7 @@ Each entry renders a Kubernetes `CronJob` with a single container definition. Va
 | `container.env`                        | array  | Same templated env structure as Deployments (supports `tpl` and `valueFrom`).                                   | `[]`           |
 | `container.resources`                  | object | Resource requests/limits map.                                                                                   | `{}`           |
 | `container.securityContext`            | object | Container-level security context.                                                                               | `{}`           |
+| `container.lifecycle`                  | object | Optional container lifecycle hooks such as `postStart` and `preStop`.                                           | unset          |
 | `volumes[]`                            | array  | Optional shared volume definitions reused for mounts and pod volumes (same structure as `apps.<name>.volumes`). | `[]`           |
 
 Example:
@@ -273,13 +275,13 @@ Every entry under `persistentVolumeClaims` renders a PVC from `templates/pvc.yam
 | `reclaimPolicy`    | string | Optional. Reclaim policy for the automatically created PV (only applies when `hostPath` is set).                                                 | `Retain`        |
 | `backup.enabled`   | bool   | When `true`, also renders `templates/pvc-backup.yaml`, which provisions Restic CronJobs + Secret per PVC.                                         | `false`         |
 | `backup.schedule`  | string | Optional Cron expression for the snapshot job. Falls back to `defaults.backup.schedule`.                                                         | `*/30 * * * *`  |
-| `backup.forgetSchedule` | string | Optional Cron expression for the retention job. Falls back to `defaults.backup.forgetSchedule`.                                              | `@daily`        |
-| `backup.pruningPolicy` | object | Optional overrides to the Retention policy used by the forget job.                                                                             | see values      |
+| `backup.housekeepingSchedule` | string | Optional Cron expression for the housekeeping job. Falls back to `defaults.backup.housekeepingSchedule`.                                    | `@daily`        |
+| `backup.pruningPolicy` | object | Optional overrides to the Retention policy used by the housekeeping job.                                                                       | see values      |
 
 When backups are enabled:
 
 - One CronJob handles snapshots (default every 30 minutes) using `restic/restic`, backing up `/data` (the mounted PVC).
-- A second CronJob enforces retention once per day with `restic forget` so that expensive Backblaze transactions only occur daily.
+- A second CronJob runs housekeeping once per day (default `@daily`) to prune old snapshots (`restic forget --prune`) and verify repository integrity (`restic check`).
 - Secrets referenced inside the backup template rely on external secret injection (see the `<path:...>` placeholders). Update those secret references to match your vault or secret store if needed.
 
 Example:

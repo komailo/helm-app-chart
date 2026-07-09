@@ -3,7 +3,7 @@
 {{- $defaultBackup := default (dict) $defaults.backup }}
 {{- $defaultPruning := default (dict) $defaultBackup.pruningPolicy }}
 {{- $defaultSchedule := default "@hourly" $defaultBackup.schedule }}
-{{- $defaultForgetSchedule := default "@daily" $defaultBackup.forgetSchedule }}
+{{- $defaultHousekeepingSchedule := default "@daily" $defaultBackup.housekeepingSchedule }}
 {{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
 {{- if and $pvc.backup $pvc.backup.enabled }}
 {{- $pruning := default (dict) $pvc.backup.pruningPolicy }}
@@ -13,7 +13,7 @@
 {{- $keepWeekly := default $defaultPruning.keepWeekly $pruning.keepWeekly }}
 {{- $keepMonthly := default $defaultPruning.keepMonthly $pruning.keepMonthly }}
 {{- $keepYearly := default $defaultPruning.keepYearly $pruning.keepYearly }}
-{{- $forgetSchedule := default $defaultForgetSchedule $pvc.backup.forgetSchedule }}
+{{- $housekeepingSchedule := default $defaultHousekeepingSchedule $pvc.backup.housekeepingSchedule }}
 {{- $_ := set $backupTracker "enabled" true }}
 ---
 apiVersion: v1
@@ -75,18 +75,79 @@ spec:
 
                   cd /data
 
-                  # Random jitter between 0 and 300 seconds (0-5 minutes)
-                  JITTER=$((RANDOM % 300))
-                  echo "Sleeping for ${JITTER}s before starting work..."
-                  sleep "${JITTER}"
-
                   export RESTIC_PASSWORD=${RESTIC_password}
-                  export RESTIC_REPOSITORY=${RESTIC_repository}
-                  export AWS_ACCESS_KEY_ID=${RESTIC_aws_access_key_id}
-                  export AWS_SECRET_ACCESS_KEY=${RESTIC_aws_secret_access_key}
-                  export AWS_DEFAULT_REGION=${RESTIC_aws_default_region}
+                  REPO_BASE="${RESTIC_repository%/}"
+                  export RESTIC_REPOSITORY="${REPO_BASE}/{{ $.Release.Namespace }}/{{ $pvcName }}"
 
                   export RESTIC_CACHE_DIR=/cache/restic
+
+                  # Setup SSH key and known_hosts for SFTP/rsync.net if private key is provided
+                  if [ -n "${RESTIC_ssh_private_key:-}" ]; then
+                    echo "[ssh] SSH private key found, preparing connection wrapper..."
+                    SSH_DIR="/cache/restic/.ssh"
+                    mkdir -p "$SSH_DIR"
+                    chmod 700 "$SSH_DIR"
+
+                    # Write the private key
+                    echo "$RESTIC_ssh_private_key" > "$SSH_DIR/id_rsa"
+                    chmod 600 "$SSH_DIR/id_rsa"
+
+                    # Write known_hosts if fingerprint/known_hosts is provided
+                    if [ -n "${RESTIC_ssh_known_hosts:-}" ]; then
+                      echo "$RESTIC_ssh_known_hosts" > "$SSH_DIR/known_hosts"
+                      chmod 600 "$SSH_DIR/known_hosts"
+                    elif [ -n "${RESTIC_ssh_host_fingerprint:-}" ]; then
+                      echo "$RESTIC_ssh_host_fingerprint" > "$SSH_DIR/known_hosts"
+                      chmod 600 "$SSH_DIR/known_hosts"
+                    else
+                      touch "$SSH_DIR/known_hosts"
+                      chmod 600 "$SSH_DIR/known_hosts"
+                    fi
+
+                    # Create a wrapper script to run ssh with correct options
+                    printf '%s\n' \
+                      '#!/bin/sh' \
+                      'set -eu' \
+                      "RESTIC_REPOSITORY='${RESTIC_repository:-}'" \
+                      'TEMP="${RESTIC_REPOSITORY#sftp:}"' \
+                      'TEMP="${TEMP#//}"' \
+                      'SSH_HOST="${TEMP%%:*}"' \
+                      'SSH_HOST="${SSH_HOST%%/*}"' \
+                      'SSH_PORT_ARG=""' \
+                      'PORT_AND_PATH="${TEMP#*:}"' \
+                      'if [ "$PORT_AND_PATH" != "$TEMP" ]; then' \
+                      '  PORT="${PORT_AND_PATH%%/*}"' \
+                      '  case "$PORT" in' \
+                      '    [0-9]*)' \
+                      '      SSH_PORT_ARG="-p $PORT"' \
+                      '      ;;' \
+                      '  esac' \
+                      'fi' \
+                      'exec ssh -i /cache/restic/.ssh/id_rsa -o UserKnownHostsFile=/cache/restic/.ssh/known_hosts -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes ${SSH_PORT_ARG} "$SSH_HOST" -s sftp' \
+                      > "$SSH_DIR/ssh-wrapper.sh"
+                    chmod 700 "$SSH_DIR/ssh-wrapper.sh"
+
+                    export RESTIC_SFTP_ARGS="-o sftp.command=/cache/restic/.ssh/ssh-wrapper.sh"
+                  else
+                    export RESTIC_SFTP_ARGS=""
+                  fi
+
+                  # Define restic wrapper to automatically inject SSH options if configured
+                  restic() {
+                    if [ -n "${RESTIC_SFTP_ARGS:-}" ]; then
+                      command restic ${RESTIC_SFTP_ARGS} "$@"
+                    else
+                      command restic "$@"
+                    fi
+                  }
+
+                  # Automatically initialize the repository if it does not exist
+                  if ! restic snapshots > /dev/null 2>&1; then
+                    echo "[backup] Repository not found, initializing repository..."
+                    restic init
+                  else
+                    echo "[backup] Repository already initialized, skipping initialization."
+                  fi
 
                   echo "[backup] Running backup of /data ..."
                   restic backup . \
@@ -111,10 +172,10 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: restic-backup-{{ $pvcName }}-forget
+  name: restic-backup-{{ $pvcName }}-housekeeping
   namespace: {{ $.Release.Namespace }}
 spec:
-  schedule: "{{ $forgetSchedule }}"
+  schedule: "{{ $housekeepingSchedule }}"
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
@@ -154,17 +215,75 @@ spec:
                   set -euo pipefail
 
                   export RESTIC_PASSWORD=${RESTIC_password}
-                  export RESTIC_REPOSITORY=${RESTIC_repository}
-                  export AWS_ACCESS_KEY_ID=${RESTIC_aws_access_key_id}
-                  export AWS_SECRET_ACCESS_KEY=${RESTIC_aws_secret_access_key}
-                  export AWS_DEFAULT_REGION=${RESTIC_aws_default_region}
+                  REPO_BASE="${RESTIC_repository%/}"
+                  export RESTIC_REPOSITORY="${REPO_BASE}/{{ $.Release.Namespace }}/{{ $pvcName }}"
 
                   export RESTIC_CACHE_DIR=/cache/restic
+
+                  # Setup SSH key and known_hosts for SFTP/rsync.net if private key is provided
+                  if [ -n "${RESTIC_ssh_private_key:-}" ]; then
+                    echo "[ssh] SSH private key found, preparing connection wrapper..."
+                    SSH_DIR="/cache/restic/.ssh"
+                    mkdir -p "$SSH_DIR"
+                    chmod 700 "$SSH_DIR"
+
+                    # Write the private key
+                    echo "$RESTIC_ssh_private_key" > "$SSH_DIR/id_rsa"
+                    chmod 600 "$SSH_DIR/id_rsa"
+
+                    # Write known_hosts if fingerprint/known_hosts is provided
+                    if [ -n "${RESTIC_ssh_known_hosts:-}" ]; then
+                      echo "$RESTIC_ssh_known_hosts" > "$SSH_DIR/known_hosts"
+                      chmod 600 "$SSH_DIR/known_hosts"
+                    elif [ -n "${RESTIC_ssh_host_fingerprint:-}" ]; then
+                      echo "$RESTIC_ssh_host_fingerprint" > "$SSH_DIR/known_hosts"
+                      chmod 600 "$SSH_DIR/known_hosts"
+                    else
+                      touch "$SSH_DIR/known_hosts"
+                      chmod 600 "$SSH_DIR/known_hosts"
+                    fi
+
+                    # Create a wrapper script to run ssh with correct options
+                    printf '%s\n' \
+                      '#!/bin/sh' \
+                      'set -eu' \
+                      "RESTIC_REPOSITORY='${RESTIC_repository:-}'" \
+                      'TEMP="${RESTIC_REPOSITORY#sftp:}"' \
+                      'TEMP="${TEMP#//}"' \
+                      'SSH_HOST="${TEMP%%:*}"' \
+                      'SSH_HOST="${SSH_HOST%%/*}"' \
+                      'SSH_PORT_ARG=""' \
+                      'PORT_AND_PATH="${TEMP#*:}"' \
+                      'if [ "$PORT_AND_PATH" != "$TEMP" ]; then' \
+                      '  PORT="${PORT_AND_PATH%%/*}"' \
+                      '  case "$PORT" in' \
+                      '    [0-9]*)' \
+                      '      SSH_PORT_ARG="-p $PORT"' \
+                      '      ;;' \
+                      '  esac' \
+                      'fi' \
+                      'exec ssh -i /cache/restic/.ssh/id_rsa -o UserKnownHostsFile=/cache/restic/.ssh/known_hosts -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes ${SSH_PORT_ARG} "$SSH_HOST" -s sftp' \
+                      > "$SSH_DIR/ssh-wrapper.sh"
+                    chmod 700 "$SSH_DIR/ssh-wrapper.sh"
+
+                    export RESTIC_SFTP_ARGS="-o sftp.command=/cache/restic/.ssh/ssh-wrapper.sh"
+                  else
+                    export RESTIC_SFTP_ARGS=""
+                  fi
+
+                  # Define restic wrapper to automatically inject SSH options if configured
+                  restic() {
+                    if [ -n "${RESTIC_SFTP_ARGS:-}" ]; then
+                      command restic ${RESTIC_SFTP_ARGS} "$@"
+                    else
+                      command restic "$@"
+                    fi
+                  }
 
                   echo "[restic unlock] Starting stale lock removal operation"
                   restic unlock
 
-                  echo "[retention] Applying retention policy..."
+                  echo "[retention] Applying retention policy and pruning..."
                   restic forget \
                     --keep-last "{{ $keepLast }}" \
                     --keep-hourly "{{ $keepHourly }}" \
@@ -172,11 +291,16 @@ spec:
                     --keep-weekly "{{ $keepWeekly }}" \
                     --keep-monthly "{{ $keepMonthly }}" \
                     --keep-yearly "{{ $keepYearly }}" \
+                    --prune \
                     --retry-lock "$RESTIC_RETRY_LOCK" \
                     --tag="pvc={{ $pvcName }}" \
                     --tag="namespace={{ $.Release.Namespace }}"
 
-                  echo "[retention] Done."
+                  echo "[check] Verifying repository integrity..."
+                  restic check \
+                    --retry-lock "$RESTIC_RETRY_LOCK"
+
+                  echo "[housekeeping] Done."
 
           volumes:
             - name: restic-cache

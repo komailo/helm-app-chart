@@ -102,7 +102,11 @@ spec:
               securityContext:
 {{ toYaml . | nindent 16 }}
 {{- end }}
-{{- with $container.resources }}
+{{- $cronResources := $container.resources }}
+{{- if not $cronResources }}
+  {{- $cronResources = $.Values.defaults.resources }}
+{{- end }}
+{{- with $cronResources }}
               resources:
 {{ toYaml . | nindent 16 }}
 {{- end }}

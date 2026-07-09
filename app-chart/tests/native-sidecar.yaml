@@ -1,0 +1,16 @@
+apps:
+  myapp:
+    image:
+      repository: nginx
+      tag: latest
+    initContainers:
+      - name: sidecar
+        image:
+          repository: busybox
+          tag: latest
+        restartPolicy: Always
+        startupProbe:
+          type: tcp
+          port: 8080
+          initialDelaySeconds: 5
+        command: ["sh", "-c", "echo hello"]

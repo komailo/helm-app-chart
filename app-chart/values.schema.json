@@ -40,9 +40,9 @@
               "description": "Fallback Cron expression for PVC backup jobs.",
               "default": "*/30 * * * *"
             },
-            "forgetSchedule": {
+            "housekeepingSchedule": {
               "type": "string",
-              "description": "Cron expression for the retention (restic forget) job when unspecified by a PVC.",
+              "description": "Cron expression for the housekeeping (restic forget + prune + check) job when unspecified by a PVC.",
               "default": "@daily"
             },
             "pruningPolicy": {
@@ -59,6 +59,23 @@
             }
           },
           "additionalProperties": false
+        },
+        "resources": {
+          "type": "object",
+          "description": "Default resource requests and limits for all containers. Override per-app via apps.<name>.resources.",
+          "properties": {
+            "requests": { "type": "object" },
+            "limits": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "podSecurityContext": {
+          "type": "object",
+          "description": "Pod-level security context applied to all Deployments and CronJobs. Override per-app with apps.<name>.podSecurityContext."
+        },
+        "containerSecurityContext": {
+          "type": "object",
+          "description": "Container-level security context applied to every container. Override per-container with apps.<name>.securityContext."
         }
       },
       "additionalProperties": true
@@ -213,6 +230,7 @@
         },
         "resources": { "type": "object" },
         "securityContext": { "type": "object" },
+        "lifecycle": { "type": "object" },
         "restartPolicy": {
           "type": "string",
           "enum": ["Always", "OnFailure", "Never"],
@@ -240,7 +258,7 @@
         "mountPath": { "type": "string" },
         "subPath": {
           "type": "string",
-          "description": "Optional subPath used when mounting the PVC."
+          "description": "Optional subPath used when mounting the volume."
         },
         "persistentVolumeClaim": {
           "type": "object",
@@ -249,9 +267,12 @@
           },
           "required": ["claimName"],
           "additionalProperties": false
+        },
+        "emptyDir": {
+          "type": "object"
         }
       },
-      "required": ["name", "mountPath", "persistentVolumeClaim"],
+      "required": ["name", "mountPath"],
       "additionalProperties": false
     },
     "configMapItem": {
@@ -414,6 +435,10 @@
         "enabled": { "type": "boolean", "default": true },
         "replicas": { "type": "integer", "minimum": 1 },
         "deployStrategy": { "type": "string" },
+        "podSecurityContext": {
+          "type": "object",
+          "description": "Per-app override for pod-level security context. Replaces defaults.podSecurityContext for this app."
+        },
         "image": { "$ref": "#/definitions/image" },
         "args": {
           "type": "array",
@@ -438,6 +463,7 @@
         "startupProbe": { "$ref": "#/definitions/probe" },
         "livenessProbe": { "$ref": "#/definitions/probe" },
         "readinessProbe": { "$ref": "#/definitions/probe" },
+        "lifecycle": { "type": "object" },
         "service": { "$ref": "#/definitions/servicePort" },
         "ports": {
           "type": "array",
@@ -455,6 +481,17 @@
             "allowInternetEgress": { "type": "boolean", "default": false },
             "ingress": { "type": "array", "items": { "type": "object" } },
             "egress": { "type": "array", "items": { "type": "object" } }
+          },
+          "additionalProperties": false
+        },
+        "serviceAccount": {
+          "type": "object",
+          "description": "ServiceAccount configuration for this app.",
+          "properties": {
+            "create": { "type": "boolean", "default": false, "description": "Create a dedicated ServiceAccount for this app." },
+            "name": { "type": "string", "description": "Override the ServiceAccount name (defaults to app name)." },
+            "automountServiceAccountToken": { "type": "boolean", "default": false, "description": "Mount the service account token into pods." },
+            "annotations": { "type": "object", "additionalProperties": { "type": "string" } }
           },
           "additionalProperties": false
         },
@@ -531,7 +568,7 @@
       "properties": {
         "enabled": { "type": "boolean" },
         "schedule": { "type": "string" },
-        "forgetSchedule": { "type": "string" },
+        "housekeepingSchedule": { "type": "string" },
         "pruningPolicy": {
           "type": "object",
           "properties": {
@@ -606,7 +643,8 @@
           "default": []
         },
         "resources": { "type": "object" },
-        "securityContext": { "type": "object" }
+        "securityContext": { "type": "object" },
+        "lifecycle": { "type": "object" }
       },
       "required": ["image"],
       "additionalProperties": true

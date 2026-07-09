@@ -13,8 +13,8 @@ defaults:
   backup:
     # -- Default Cron expression for PVC backup jobs when a PVC omits `backup.schedule`.
     schedule: "*/30 * * * *"
-    # -- Cron expression for the retention (restic forget) job when a PVC omits `backup.forgetSchedule`.
-    forgetSchedule: "@daily"
+    # -- Cron expression for the housekeeping (restic forget + prune + check) job when a PVC omits `backup.housekeepingSchedule`.
+    housekeepingSchedule: "@daily"
 
     # 📦 Total snapshots (approx.)
     # 48 hourly
@@ -31,6 +31,32 @@ defaults:
       keepWeekly: 12
       keepMonthly: 24
       keepYearly: 3
+
+  # -- Default resource requests and limits for all containers (Deployments and CronJobs).
+  # Override per-app with `apps.<name>.resources` or per-CronJob with `cronJobs.<name>.container.resources`.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # -- Pod-level security context applied to all Deployments and CronJobs.
+  # Override per-app with `apps.<name>.podSecurityContext`.
+  podSecurityContext:
+    runAsNonRoot: true
+
+  # -- Container-level security context applied to every container rendered by the chart.
+  # Override per-container with `apps.<name>.securityContext` or sidecar-level `securityContext`.
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
 
 # -- Optional cluster identifier used when building paths for shared backup secrets.
 clusterName: ""
@@ -161,6 +187,10 @@ apps:
   #       periodSeconds: 10
   #       timeoutSeconds: 1
   #       successThreshold: 1
+  #     lifecycle:
+  #       postStart:
+  #         exec:
+  #           command: ["/bin/sh", "-c", "echo Hello"]
   #     service:
   #       type: ClusterIP
   #     ports:
@@ -194,7 +224,7 @@ mariadb:
 restic:
   image:
     repository: restic/restic
-    tag: 0.18.1@sha256:39d9072fb5651c80d75c7a811612eb60b4c06b32ffe87c2e9f3c7222e1797e76
+    tag: 0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
 
 esm:
   {}
