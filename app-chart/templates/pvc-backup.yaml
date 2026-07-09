@@ -131,6 +131,14 @@ spec:
                     fi
                   }
 
+                  # Automatically initialize the repository if it does not exist
+                  if ! restic snapshots > /dev/null 2>&1; then
+                    echo "[backup] Repository not found, initializing repository..."
+                    restic init
+                  else
+                    echo "[backup] Repository already initialized, skipping initialization."
+                  fi
+
                   echo "[backup] Running backup of /data ..."
                   restic backup . \
                     --skip-if-unchanged \
