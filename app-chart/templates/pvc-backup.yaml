@@ -100,10 +100,8 @@ spec:
                     fi
 
                     # Create a wrapper script to run ssh with correct options
-                    cat << 'EOF' > "$SSH_DIR/ssh-wrapper.sh"
-#!/bin/sh
-exec ssh -i /cache/restic/.ssh/id_rsa -o UserKnownHostsFile=/cache/restic/.ssh/known_hosts -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$@"
-EOF
+                    echo '#!/bin/sh' > "$SSH_DIR/ssh-wrapper.sh"
+                    echo 'exec ssh -i /cache/restic/.ssh/id_rsa -o UserKnownHostsFile=/cache/restic/.ssh/known_hosts -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$@"' >> "$SSH_DIR/ssh-wrapper.sh"
                     chmod 700 "$SSH_DIR/ssh-wrapper.sh"
 
                     export RESTIC_SFTP_ARGS="-o sftp.command=/cache/restic/.ssh/ssh-wrapper.sh"
@@ -205,10 +203,8 @@ spec:
                     fi
 
                     # Create a wrapper script to run ssh with correct options
-                    cat << 'EOF' > "$SSH_DIR/ssh-wrapper.sh"
-#!/bin/sh
-exec ssh -i /cache/restic/.ssh/id_rsa -o UserKnownHostsFile=/cache/restic/.ssh/known_hosts -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$@"
-EOF
+                    echo '#!/bin/sh' > "$SSH_DIR/ssh-wrapper.sh"
+                    echo 'exec ssh -i /cache/restic/.ssh/id_rsa -o UserKnownHostsFile=/cache/restic/.ssh/known_hosts -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$@"' >> "$SSH_DIR/ssh-wrapper.sh"
                     chmod 700 "$SSH_DIR/ssh-wrapper.sh"
 
                     export RESTIC_SFTP_ARGS="-o sftp.command=/cache/restic/.ssh/ssh-wrapper.sh"
