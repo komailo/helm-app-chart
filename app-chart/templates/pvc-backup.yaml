@@ -66,11 +66,6 @@ spec:
 
                   cd /data
 
-                  # Random jitter between 0 and 300 seconds (0-5 minutes)
-                  JITTER=$((RANDOM % 300))
-                  echo "Sleeping for ${JITTER}s before starting work..."
-                  sleep "${JITTER}"
-
                   export RESTIC_PASSWORD=${RESTIC_password}
                   export RESTIC_REPOSITORY=${RESTIC_repository}
 
