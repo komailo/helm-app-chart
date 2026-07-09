@@ -75,8 +75,25 @@ spec:
                     fi
 
                     # Create a wrapper script to run ssh with correct options
-                    echo '#!/bin/sh' > "$SSH_DIR/ssh-wrapper.sh"
-                    echo 'exec ssh -i /cache/restic/.ssh/id_rsa -o UserKnownHostsFile=/cache/restic/.ssh/known_hosts -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$@"' >> "$SSH_DIR/ssh-wrapper.sh"
+                    printf '%s\n' \
+                      '#!/bin/sh' \
+                      'set -eu' \
+                      'TEMP="${RESTIC_REPOSITORY#sftp:}"' \
+                      'TEMP="${TEMP#//}"' \
+                      'SSH_HOST="${TEMP%%:*}"' \
+                      'SSH_HOST="${SSH_HOST%%/*}"' \
+                      'SSH_PORT_ARG=""' \
+                      'PORT_AND_PATH="${TEMP#*:}"' \
+                      'if [ "$PORT_AND_PATH" != "$TEMP" ]; then' \
+                      '  PORT="${PORT_AND_PATH%%/*}"' \
+                      '  case "$PORT" in' \
+                      '    [0-9]*)' \
+                      '      SSH_PORT_ARG="-p $PORT"' \
+                      '      ;;' \
+                      '  esac' \
+                      'fi' \
+                      'exec ssh -i /cache/restic/.ssh/id_rsa -o UserKnownHostsFile=/cache/restic/.ssh/known_hosts -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes ${SSH_PORT_ARG} "$SSH_HOST" -s sftp' \
+                      > "$SSH_DIR/ssh-wrapper.sh"
                     chmod 700 "$SSH_DIR/ssh-wrapper.sh"
 
                     export RESTIC_SFTP_ARGS="-o sftp.command=/cache/restic/.ssh/ssh-wrapper.sh"
