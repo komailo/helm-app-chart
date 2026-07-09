@@ -95,6 +95,7 @@ spec:
                     printf '%s\n' \
                       '#!/bin/sh' \
                       'set -eu' \
+                      "RESTIC_REPOSITORY='${RESTIC_repository:-}'" \
                       'TEMP="${RESTIC_REPOSITORY#sftp:}"' \
                       'TEMP="${TEMP#//}"' \
                       'SSH_HOST="${TEMP%%:*}"' \
