@@ -3,7 +3,7 @@
 {{- $defaultBackup := default (dict) $defaults.backup }}
 {{- $defaultPruning := default (dict) $defaultBackup.pruningPolicy }}
 {{- $defaultSchedule := default "@hourly" $defaultBackup.schedule }}
-{{- $defaultForgetSchedule := default "@daily" $defaultBackup.forgetSchedule }}
+{{- $defaultHousekeepingSchedule := default "@daily" $defaultBackup.housekeepingSchedule }}
 {{- range $pvcName, $pvc := .Values.persistentVolumeClaims }}
 {{- if and $pvc.backup $pvc.backup.enabled }}
 {{- $pruning := default (dict) $pvc.backup.pruningPolicy }}
@@ -13,7 +13,7 @@
 {{- $keepWeekly := default $defaultPruning.keepWeekly $pruning.keepWeekly }}
 {{- $keepMonthly := default $defaultPruning.keepMonthly $pruning.keepMonthly }}
 {{- $keepYearly := default $defaultPruning.keepYearly $pruning.keepYearly }}
-{{- $forgetSchedule := default $defaultForgetSchedule $pvc.backup.forgetSchedule }}
+{{- $housekeepingSchedule := default $defaultHousekeepingSchedule $pvc.backup.housekeepingSchedule }}
 {{- $_ := set $backupTracker "enabled" true }}
 ---
 apiVersion: v1
@@ -162,10 +162,10 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: restic-backup-{{ $pvcName }}-forget
+  name: restic-backup-{{ $pvcName }}-housekeeping
   namespace: {{ $.Release.Namespace }}
 spec:
-  schedule: "{{ $forgetSchedule }}"
+  schedule: "{{ $housekeepingSchedule }}"
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1
   concurrencyPolicy: Forbid
@@ -263,7 +263,7 @@ spec:
                   echo "[restic unlock] Starting stale lock removal operation"
                   restic unlock
 
-                  echo "[retention] Applying retention policy..."
+                  echo "[retention] Applying retention policy and pruning..."
                   restic forget \
                     --keep-last "{{ $keepLast }}" \
                     --keep-hourly "{{ $keepHourly }}" \
@@ -271,11 +271,16 @@ spec:
                     --keep-weekly "{{ $keepWeekly }}" \
                     --keep-monthly "{{ $keepMonthly }}" \
                     --keep-yearly "{{ $keepYearly }}" \
+                    --prune \
                     --retry-lock "$RESTIC_RETRY_LOCK" \
                     --tag="pvc={{ $pvcName }}" \
                     --tag="namespace={{ $.Release.Namespace }}"
 
-                  echo "[retention] Done."
+                  echo "[check] Verifying repository integrity..."
+                  restic check \
+                    --retry-lock "$RESTIC_RETRY_LOCK"
+
+                  echo "[housekeeping] Done."
 
           volumes:
             - name: restic-cache

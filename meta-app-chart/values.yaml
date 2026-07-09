@@ -5,46 +5,4 @@ globals:
   secretStoreRefName: aws-ssm-parameter-store-default
   refreshInterval: 24h
 
-resticBackup:
-  image: &resticImage
-    repository: restic/restic
-    tag: 0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
-  enabled: false
-  # Optional override for the hostname stored inside the Restic configmap.
-  hostname: ""
-  # Optional override for the lock retry window.
-  retryLock: 15m
-  cachePVC:
-    name: restic-cache
-    # storageClassName: local-path
-    # storage: 10Gi
-  pruneJob:
-    image: *resticImage
-    name: restic-prune
-    schedule: "@weekly"
-    script: |
-      echo "[restic unlock] Starting stale lock removal operation"
-      restic unlock
-      echo "[restic prune] Starting prune operation"
-      restic prune
-  checkJob:
-    image: *resticImage
-    name: restic-check
-    schedule: "@monthly"
-    script: |
-      echo "[restic unlock] Starting stale lock removal operation"
-      restic unlock
-      echo "[restic check] Starting check operation"
-      restic check
-  initJob:
-    image: *resticImage
-    name: restic-init
-    schedule: ""
-    script: |
-      echo "[restic init] Starting init operation"
-      if ! restic snapshots > /dev/null 2>&1; then
-        echo "[backup] Repo not found, initializing..."
-        restic init
-      else
-        echo "[backup] Repo found, skipping init."
-      fi
+
