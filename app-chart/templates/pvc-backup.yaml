@@ -67,7 +67,8 @@ spec:
                   cd /data
 
                   export RESTIC_PASSWORD=${RESTIC_password}
-                  export RESTIC_REPOSITORY=${RESTIC_repository}
+                  REPO_BASE="${RESTIC_repository%/}"
+                  export RESTIC_REPOSITORY="${REPO_BASE}/{{ $.Release.Namespace }}/{{ $pvcName }}"
 
                   export RESTIC_CACHE_DIR=/cache/restic
 
@@ -196,7 +197,8 @@ spec:
                   set -euo pipefail
 
                   export RESTIC_PASSWORD=${RESTIC_password}
-                  export RESTIC_REPOSITORY=${RESTIC_repository}
+                  REPO_BASE="${RESTIC_repository%/}"
+                  export RESTIC_REPOSITORY="${REPO_BASE}/{{ $.Release.Namespace }}/{{ $pvcName }}"
 
                   export RESTIC_CACHE_DIR=/cache/restic
 
