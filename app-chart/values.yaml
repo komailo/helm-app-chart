@@ -60,7 +60,7 @@ defaults:
 
   # -- Default image pull secrets applied to all workloads (Deployments and CronJobs).
   imagePullSecrets: []
-  #   - name: ghcr-pull-secret
+  #   - ghcr-pull-secret
 
 # -- Optional cluster identifier used when building paths for shared backup secrets.
 clusterName: ""
@@ -143,8 +143,8 @@ apps:
   #     image:
   #       repository: "traefik/whoami"
   #       tag: null
-  #     imagePullSecrets:
-  #       - name: ghcr-pull-secret
+  #     imagePullSecret:
+  #       - ghcr-pull-secret
   #     args:
   #       - "--flag1"
   #       - "--flag2=value"
@@ -223,7 +223,7 @@ persistentVolumeClaims:
 # Secrets can be created via `esm.SimpleSecrets` (from AWS Parameter Store) or pre-exist in Kubernetes.
 imagePullSecrets:
   []
-  # - name: ghcr-pull-secret
+  # - ghcr-pull-secret
 
 # -- Map of CronJob definitions rendered via `templates/cronjob.yaml`.
 cronJobs: {}
