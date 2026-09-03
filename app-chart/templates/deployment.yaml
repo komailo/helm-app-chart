@@ -36,6 +36,9 @@ spec:
       securityContext:
         {{- toYaml $podSC | nindent 8 }}
       {{- end }}
+      {{- with (include "app-chart.imagePullSecrets.render" (dict "workloadSecrets" $app.imagePullSecrets "context" $)) }}
+      {{ . | nindent 6 }}
+      {{- end }}
       {{- if $app.initContainers }}
       initContainers:
 {{- range $init := $app.initContainers }}

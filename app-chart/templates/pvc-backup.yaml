@@ -43,6 +43,9 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+{{- with (include "app-chart.imagePullSecrets.render" (dict "workloadSecrets" $.Values.restic.imagePullSecrets "context" $)) }}
+{{ . | nindent 10 }}
+{{- end }}
           containers:
             - name: restic
               image: {{ printf "%s:%s" $.Values.restic.image.repository $.Values.restic.image.tag }}
@@ -177,6 +180,9 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+{{- with (include "app-chart.imagePullSecrets.render" (dict "workloadSecrets" $.Values.restic.imagePullSecrets "context" $)) }}
+{{ . | nindent 10 }}
+{{- end }}
           containers:
             - name: restic
               image: {{ printf "%s:%s" $.Values.restic.image.repository $.Values.restic.image.tag }}

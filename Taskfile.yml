@@ -25,8 +25,8 @@ tasks:
         TMP_BASE=".task-tmp/diff"
         rm -rf "$TMP_BASE"
         mkdir -p "$TMP_BASE/base" "$TMP_BASE/head"
-        echo "==> Preparing origin/main workspace..."
         git archive origin/main | tar -x -C "$TMP_BASE/base"
+        if [ -d "{{.CHART_DIR}}/charts" ]; then cp -r "{{.CHART_DIR}}/charts" "$TMP_BASE/base/app-chart/"; fi
       - task: :render-suite
         vars: {OUT_ROOT: ".task-tmp/diff/base/out", CHART_REF: ".task-tmp/diff/base/app-chart"}
       - task: :render-suite

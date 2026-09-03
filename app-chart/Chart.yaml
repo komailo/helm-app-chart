@@ -2,7 +2,7 @@ apiVersion: v2
 name: app-chart
 description: A Helm Chart for generating Kubernetes resources for app deployment
 type: application
-version: 2.2.4
+version: 2.3.0
 kubeVersion: ">= 1.29.0"
 
 maintainers:

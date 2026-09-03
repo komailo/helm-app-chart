@@ -58,6 +58,10 @@ defaults:
     seccompProfile:
       type: RuntimeDefault
 
+  # -- Default image pull secrets applied to all workloads (Deployments and CronJobs).
+  imagePullSecrets: []
+  #   - name: ghcr-pull-secret
+
 # -- Optional cluster identifier used when building paths for shared backup secrets.
 clusterName: ""
 
@@ -139,6 +143,8 @@ apps:
   #     image:
   #       repository: "traefik/whoami"
   #       tag: null
+  #     imagePullSecrets:
+  #       - name: ghcr-pull-secret
   #     args:
   #       - "--flag1"
   #       - "--flag2=value"
@@ -213,6 +219,12 @@ persistentVolumeClaims:
   #   storageClassName: local-path-ott-production-1-data-1
   #   storage: 10Gi
 
+# -- List or map of image pull secrets for private repositories applied to Deployments and CronJobs by default.
+# Secrets can be created via `esm.SimpleSecrets` (from AWS Parameter Store) or pre-exist in Kubernetes.
+imagePullSecrets:
+  []
+  # - name: ghcr-pull-secret
+
 # -- Map of CronJob definitions rendered via `templates/cronjob.yaml`.
 cronJobs: {}
 
@@ -228,6 +240,10 @@ restic:
 
 esm:
   {}
+  # SimpleSecrets:
+  #   - name: ghcr-pull-secret
+  #     dataSecretKey: .dockerconfigjson
+  #     remoteRefKey: /my-cluster/pull-secrets/ghcr
   # SubPathSecrets:
   #   - name: mariadb-credentials
   #     remoteRefKey: /my-cluster/phpipam/mariadb-credentials
