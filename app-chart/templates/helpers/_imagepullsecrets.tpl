@@ -85,7 +85,12 @@ Usage: {{ include "app-chart.imagePullSecrets.render" (dict "workloadSecrets" $a
 
 {{/* 3. Workload-level imagePullSecrets */}}
 {{- with $workloadSecrets -}}
-  {{- if kindIs "slice" . -}}
+  {{- if kindIs "string" . -}}
+    {{- if and . (not (hasKey $names .)) -}}
+      {{- $_ := set $names . true -}}
+      {{- $ordered = append $ordered . -}}
+    {{- end -}}
+  {{- else if kindIs "slice" . -}}
     {{- range . -}}
       {{- $name := "" -}}
       {{- $enabled := true -}}
