@@ -67,7 +67,7 @@ spec:
           nodeSelector:
 {{ toYaml . | nindent 12 }}
 {{- end }}
-{{- with (include "app-chart.imagePullSecrets.render" (dict "workloadSecrets" (default $job.imagePullSecrets $pod.imagePullSecrets) "context" $)) }}
+{{- with (include "app-chart.imagePullSecrets.render" (dict "workloadSecrets" (default (default $job.imagePullSecrets $job.imagePullSecret) (default $pod.imagePullSecrets $pod.imagePullSecret)) "context" $)) }}
 {{ . | nindent 10 }}
 {{- end }}
 {{- with $pod.tolerations }}
