@@ -58,6 +58,10 @@ defaults:
     seccompProfile:
       type: RuntimeDefault
 
+  # -- Default image pull secrets applied to all workloads (Deployments and CronJobs).
+  imagePullSecrets: []
+  #   - name: ghcr-pull-secret
+
 # -- Optional cluster identifier used when building paths for shared backup secrets.
 clusterName: ""
 
@@ -139,6 +143,8 @@ apps:
   #     image:
   #       repository: "traefik/whoami"
   #       tag: null
+  #     imagePullSecrets:
+  #       - name: ghcr-pull-secret
   #     args:
   #       - "--flag1"
   #       - "--flag2=value"
@@ -212,6 +218,16 @@ persistentVolumeClaims:
   #     enabled: true
   #   storageClassName: local-path-ott-production-1-data-1
   #   storage: 10Gi
+
+# -- Map or list of image pull secrets for private repositories.
+# Each entry can reference an existing Secret (name) or generate an ExternalSecret from AWS Parameter Store (via `remoteRefKey`).
+# All declared pull secrets are automatically applied to Deployments and CronJobs by default.
+imagePullSecrets:
+  {}
+  # ghcr-pull-secret:
+  #   remoteRefKey: /k8s-cluster/pull-secrets/ghcr
+  # dockerhub-pull-secret:
+  #   name: existing-k8s-secret
 
 # -- Map of CronJob definitions rendered via `templates/cronjob.yaml`.
 cronJobs: {}

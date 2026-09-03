@@ -47,6 +47,7 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 | `apps`                   | object map | Map of app name → configuration. Each entry renders a Deployment, Service, and optional Ingress.   | `{}`    |
 | `configMaps`             | object map | Shared ConfigMaps rendered once and mounted into workloads via `apps.<name>.configMounts`.         | `{}`    |
 | `cronJobs`               | object map | Map of CronJob name → configuration. Each entry renders a single-container CronJob.                | `{}`    |
+| `imagePullSecrets`       | map/array  | Shared image pull secrets or ExternalSecrets from AWS Parameter Store applied to all workloads.    | `{}`    |
 | `namespace.enabled`      | bool       | When `true`, renders `templates/namespace.yaml` so Helm creates the target namespace.              | `false` |
 | `persistentVolumeClaims` | object map | Map of PVC name → spec. Renders both `PersistentVolumeClaim` objects and optional backup CronJobs. | `{}`    |
 
@@ -58,6 +59,7 @@ The workflow uses `${{ secrets.GITHUB_TOKEN }}` with `packages: write` permissio
 | `replicas`         | int    | Number of pod replicas.                                                                                                   | `1`                                                    |
 | `image.repository` | string | Container image repository (e.g., `traefik/whoami`).                                                                      | **required**                                           |
 | `image.tag`        | string | Image tag; falls back to `latest` if omitted.                                                                             | `latest`                                               |
+| `imagePullSecrets` | array/map | Optional per-app image pull secret definitions or references.                                                          | `[]`                                                   |
 | `args`             | array  | Optional array of arguments passed to the container. Each element is a string.                                             | `[]`                                                   |
 | `envFrom`          | array  | Array of Kubernetes `envFrom` entries (ConfigMapRefs, SecretRefs, etc.) copied verbatim into the Deployment.              | `[]`                                                   |
 | `configMounts`     | array  | Mount definitions referencing shared `configMaps`. Each entry sets a target path/`subPath`/`readOnly`.                 | `[]`                                                   |
@@ -302,3 +304,53 @@ apps:
         persistentVolumeClaim:
           claimName: uptime-kuma-data
 ```
+
+### Private Repository Pull Secrets (`imagePullSecrets`)
+
+The chart provides intent-driven support for private container registries (Docker Hub, GitHub Container Registry `ghcr.io`, AWS ECR, etc.) backed by AWS Parameter Store / External Secrets Operator.
+
+#### AWS Parameter Store Integration
+When `remoteRefKey` is specified for an image pull secret, the chart automatically generates an `ExternalSecret` resource configured with `type: kubernetes.io/dockerconfigjson` pointing to your cluster's SecretStore (`aws-ssm-parameter-store-default`).
+
+| Key                  | Type   | Description                                                                                                    | Default                                         |
+| -------------------- | ------ | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `name`               | string | Name of the Kubernetes Secret (defaults to the map key).                                                       | map key                                         |
+| `remoteRefKey`       | string | AWS SSM Parameter Store path containing the docker config JSON (e.g. `/my-cluster/pull-secrets/ghcr`).         | unset                                           |
+| `secretKey`          | string | Key name within the target Secret.                                                                             | `.dockerconfigjson`                             |
+| `type`               | string | Target Secret type.                                                                                            | `kubernetes.io/dockerconfigjson`                |
+| `secretStoreRefName` | string | External Secrets store name.                                                                                   | `globals.secretStoreRefName`                    |
+| `secretStoreRefKind` | string | External Secrets store kind.                                                                                   | `globals.secretStoreRefKind`                    |
+| `refreshInterval`    | string | Secret refresh interval.                                                                                       | `globals.refreshInterval`                       |
+| `enabled`            | bool   | Toggles this secret entry without deleting it.                                                                 | `true`                                          |
+
+#### Reusability Across Workloads
+- **Global / Default Level**: Secrets defined under root `imagePullSecrets` or `defaults.imagePullSecrets` are automatically attached to **all** Deployments and CronJobs rendered by the chart.
+- **Per-App Level**: Specify `apps.<name>.imagePullSecrets` to attach app-specific pull secrets.
+- **Existing Secrets**: Reference existing Kubernetes Secret names (without `remoteRefKey`) directly.
+
+#### Examples
+
+**1. Reusable AWS Parameter Store Pull Secret for all apps:**
+```yaml
+imagePullSecrets:
+  ghcr-pull-secret:
+    remoteRefKey: /k8s-production/pull-secrets/ghcr
+
+apps:
+  my-app:
+    image:
+      repository: ghcr.io/my-org/my-app
+      tag: v1.0.0
+```
+
+**2. App-specific pull secret overriding or extending defaults:**
+```yaml
+apps:
+  private-app:
+    image:
+      repository: 123456789.dkr.ecr.us-east-1.amazonaws.com/private-app
+    imagePullSecrets:
+      - name: ecr-pull-secret
+        remoteRefKey: /k8s-production/pull-secrets/ecr
+```
+

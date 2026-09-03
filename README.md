@@ -15,3 +15,23 @@ This repository now bundles three sibling Helm charts so they can share the same
 3. Run `helm lint .` and `helm template . --values values.yaml` (or any ad-hoc values file).
 
 The application charts declare the library dependency using a relative `file://../library-app-chart` repository address so that development across sibling charts stays in sync. When the charts are packaged or published, Helm will vendor the current local copy of the library chart into `charts/` automatically.
+
+## Configuration & Feature Flags
+
+### Private Repository Pull Secrets (`imagePullSecrets`)
+
+The chart supports pulling container images from private registries (GHCR, Docker Hub, AWS ECR, private registries) with first-class AWS Parameter Store / External Secrets integration:
+
+- **Reusable Global / Default Secrets**: Define `imagePullSecrets` at the root or under `defaults.imagePullSecrets` to automatically apply them to all `Deployments`, `CronJobs`, and backup jobs.
+- **AWS Parameter Store Integration**: When `remoteRefKey` is specified, the chart automatically generates an `ExternalSecret` of type `kubernetes.io/dockerconfigjson` backed by your cluster's SecretStore (`aws-ssm-parameter-store-default`).
+- **Per-App Overrides**: Specify `apps.<name>.imagePullSecrets` to attach dedicated pull secrets to specific workloads.
+- **Existing Secret Support**: Reference existing Kubernetes Secret names without `remoteRefKey`.
+
+Example:
+
+```yaml
+imagePullSecrets:
+  ghcr-pull-secret:
+    remoteRefKey: /k8s-cluster/pull-secrets/ghcr
+```
+

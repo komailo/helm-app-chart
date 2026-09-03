@@ -76,6 +76,10 @@
         "containerSecurityContext": {
           "type": "object",
           "description": "Container-level security context applied to every container. Override per-container with apps.<name>.securityContext."
+        },
+        "imagePullSecrets": {
+          "$ref": "#/definitions/imagePullSecrets",
+          "description": "Default image pull secrets applied to all workloads (Deployments and CronJobs)."
         }
       },
       "additionalProperties": true
@@ -142,6 +146,10 @@
       "type": "object",
       "default": {},
       "additionalProperties": { "$ref": "#/definitions/pvcSpec" }
+    },
+    "imagePullSecrets": {
+      "$ref": "#/definitions/imagePullSecrets",
+      "description": "Image pull secrets for private repositories."
     },
     "cronJobs": {
       "type": "object",
@@ -440,6 +448,10 @@
           "description": "Per-app override for pod-level security context. Replaces defaults.podSecurityContext for this app."
         },
         "image": { "$ref": "#/definitions/image" },
+        "imagePullSecrets": {
+          "$ref": "#/definitions/imagePullSecrets",
+          "description": "Per-app image pull secrets."
+        },
         "args": {
           "type": "array",
           "items": { "type": "string" },
@@ -491,6 +503,7 @@
             "create": { "type": "boolean", "default": false, "description": "Create a dedicated ServiceAccount for this app." },
             "name": { "type": "string", "description": "Override the ServiceAccount name (defaults to app name)." },
             "automountServiceAccountToken": { "type": "boolean", "default": false, "description": "Mount the service account token into pods." },
+            "imagePullSecrets": { "$ref": "#/definitions/imagePullSecrets" },
             "annotations": { "type": "object", "additionalProperties": { "type": "string" } }
           },
           "additionalProperties": false
@@ -658,10 +671,7 @@
           "type": "object",
           "additionalProperties": { "type": "string" }
         },
-        "imagePullSecrets": {
-          "type": "array",
-          "items": { "type": "object" }
-        },
+        "imagePullSecrets": { "$ref": "#/definitions/imagePullSecrets" },
         "tolerations": {
           "type": "array",
           "items": { "type": "object" }
@@ -702,6 +712,30 @@
       },
       "required": ["schedule", "container"],
       "additionalProperties": true
+    },
+    "imagePullSecretItem": {
+      "type": ["object", "string"],
+      "properties": {
+        "name": { "type": "string" },
+        "remoteRefKey": { "type": "string" },
+        "secretStoreRefName": { "type": "string" },
+        "secretStoreRefKind": { "type": "string" },
+        "refreshInterval": { "type": "string" },
+        "secretKey": { "type": "string" },
+        "property": { "type": "string" },
+        "version": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "targetName": { "type": "string" },
+        "type": { "type": "string" },
+        "labels": { "type": "object" },
+        "annotations": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "imagePullSecrets": {
+      "type": ["array", "object"],
+      "items": { "$ref": "#/definitions/imagePullSecretItem" },
+      "additionalProperties": { "$ref": "#/definitions/imagePullSecretItem" }
     }
   }
 }
