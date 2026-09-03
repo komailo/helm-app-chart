@@ -169,6 +169,20 @@
     "esm": {
       "type": "object",
       "properties": {
+        "SimpleSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "dataSecretKey": { "type": "string" },
+              "remoteRefKey": { "type": "string" }
+            },
+            "required": ["name", "dataSecretKey", "remoteRefKey"],
+            "additionalProperties": true
+          },
+          "default": []
+        },
         "SubPathSecrets": {
           "type": "array",
           "items": {
@@ -179,6 +193,19 @@
             },
             "required": ["name", "remoteRefKey"],
             "additionalProperties": false
+          },
+          "default": []
+        },
+        "JsonSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "remoteRefKey": { "type": "string" }
+            },
+            "required": ["name", "remoteRefKey"],
+            "additionalProperties": true
           },
           "default": []
         }

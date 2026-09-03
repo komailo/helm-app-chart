@@ -219,15 +219,11 @@ persistentVolumeClaims:
   #   storageClassName: local-path-ott-production-1-data-1
   #   storage: 10Gi
 
-# -- Map or list of image pull secrets for private repositories.
-# Each entry can reference an existing Secret (name) or generate an ExternalSecret from AWS Parameter Store (via `remoteRefKey`).
-# All declared pull secrets are automatically applied to Deployments and CronJobs by default.
+# -- List or map of image pull secrets for private repositories applied to Deployments and CronJobs by default.
+# Secrets can be created via `esm.SimpleSecrets` (from AWS Parameter Store) or pre-exist in Kubernetes.
 imagePullSecrets:
-  {}
-  # ghcr-pull-secret:
-  #   remoteRefKey: /k8s-cluster/pull-secrets/ghcr
-  # dockerhub-pull-secret:
-  #   name: existing-k8s-secret
+  []
+  # - name: ghcr-pull-secret
 
 # -- Map of CronJob definitions rendered via `templates/cronjob.yaml`.
 cronJobs: {}
@@ -244,6 +240,10 @@ restic:
 
 esm:
   {}
+  # SimpleSecrets:
+  #   - name: ghcr-pull-secret
+  #     dataSecretKey: .dockerconfigjson
+  #     remoteRefKey: /my-cluster/pull-secrets/ghcr
   # SubPathSecrets:
   #   - name: mariadb-credentials
   #     remoteRefKey: /my-cluster/phpipam/mariadb-credentials

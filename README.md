@@ -20,18 +20,24 @@ The application charts declare the library dependency using a relative `file://.
 
 ### Private Repository Pull Secrets (`imagePullSecrets`)
 
-The chart supports pulling container images from private registries (GHCR, Docker Hub, AWS ECR, private registries) with first-class AWS Parameter Store / External Secrets integration:
+The chart supports pulling container images from private registries (GHCR, Docker Hub, AWS ECR, private registries) by reusing the built-in `esm` (External Secrets Manager) subchart and AWS Parameter Store:
 
-- **Reusable Global / Default Secrets**: Define `imagePullSecrets` at the root or under `defaults.imagePullSecrets` to automatically apply them to all `Deployments`, `CronJobs`, and backup jobs.
-- **AWS Parameter Store Integration**: When `remoteRefKey` is specified, the chart automatically generates an `ExternalSecret` of type `kubernetes.io/dockerconfigjson` backed by your cluster's SecretStore (`aws-ssm-parameter-store-default`).
+- **Secret Creation with `esm`**: Define secrets under `esm.SimpleSecrets` with `dataSecretKey: .dockerconfigjson` pointing to your AWS Parameter Store path (`remoteRefKey`).
+- **Reusable Global / Default Wiring**: Define `imagePullSecrets` at the root or under `defaults.imagePullSecrets` to automatically wire the pull secret into all `Deployments`, `CronJobs`, and backup jobs.
 - **Per-App Overrides**: Specify `apps.<name>.imagePullSecrets` to attach dedicated pull secrets to specific workloads.
-- **Existing Secret Support**: Reference existing Kubernetes Secret names without `remoteRefKey`.
+- **Existing Secret Support**: Reference existing Kubernetes Secret names directly in `imagePullSecrets`.
 
 Example:
 
 ```yaml
+esm:
+  SimpleSecrets:
+    - name: ghcr-pull-secret
+      dataSecretKey: .dockerconfigjson
+      remoteRefKey: /k8s-cluster/pull-secrets/ghcr
+
 imagePullSecrets:
-  ghcr-pull-secret:
-    remoteRefKey: /k8s-cluster/pull-secrets/ghcr
+  - ghcr-pull-secret
 ```
+
 

@@ -18,8 +18,8 @@ PVC helper snippets for `templates/pvc.yaml` and other PVC consumers:
 
 - app-chart.pvc.claim: renders a PVC manifest from `values.persistentVolumeClaims`, keeping namespace scoping and storage settings centralized.
 
-ImagePullSecrets helper snippets backing `templates/imagepullsecrets.yaml` and pod specs:
+ImagePullSecrets helper snippets backing workload pod specs:
 
 - app-chart.imagePullSecrets.render: normalizes, merges, deduplicates, and renders the `imagePullSecrets` pod spec section from global, default, and workload-specific settings.
-- app-chart.imagePullSecrets.collectExternalSecrets: gathers all declared ExternalSecret definitions with `remoteRefKey` across all value scopes for rendering.
+
 
