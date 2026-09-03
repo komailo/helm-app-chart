@@ -479,6 +479,10 @@
           "$ref": "#/definitions/imagePullSecrets",
           "description": "Per-app image pull secrets."
         },
+        "imagePullSecret": {
+          "$ref": "#/definitions/imagePullSecrets",
+          "description": "Alias for imagePullSecrets."
+        },
         "args": {
           "type": "array",
           "items": { "type": "string" },
