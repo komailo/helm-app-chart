@@ -581,6 +581,9 @@
                   "hosts": {
                     "type": "array",
                     "items": { "type": "string" }
+                  },
+                  "secretName": {
+                    "type": "string"
                   }
                 },
                 "additionalProperties": false
