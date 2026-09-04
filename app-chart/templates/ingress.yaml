@@ -42,7 +42,7 @@ spec:
 {{- if $ing.tls }}
   tls:
 {{- range $tls := $ing.tls }}
-    - secretName: {{ $ingressName }}-tls
+    - secretName: {{ default (printf "%s-tls" $ingressName) $tls.secretName }}
 {{- if $tls.hosts }}
       hosts:
 {{- range $host := $tls.hosts }}

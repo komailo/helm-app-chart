@@ -483,6 +483,14 @@
           "$ref": "#/definitions/imagePullSecrets",
           "description": "Alias for imagePullSecrets."
         },
+        "command": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "workingDir": { "type": "string" },
+        "resources": { "type": "object" },
+        "securityContext": { "type": "object" },
+        "restartPolicy": { "type": "string" },
         "args": {
           "type": "array",
           "items": { "type": "string" },
@@ -581,6 +589,9 @@
                   "hosts": {
                     "type": "array",
                     "items": { "type": "string" }
+                  },
+                  "secretName": {
+                    "type": "string"
                   }
                 },
                 "additionalProperties": false
@@ -605,7 +616,7 @@
         }
       },
       "required": ["image"],
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "backupPolicy": {
       "type": "object",
